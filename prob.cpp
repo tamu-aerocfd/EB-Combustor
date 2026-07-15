@@ -27,6 +27,52 @@ validate_geometry(const ProbParmDevice& pp)
   require(
     pp.inlet_lower_r > pp.r_lower && pp.inlet_lower_r < pp.r_upper,
     "prob.inlet_lower_r must lie inside the annulus");
+  require(
+    pp.secondary_inlet_split_r > pp.r_lower &&
+      pp.secondary_inlet_split_r < pp.r_upper,
+    "prob.secondary_inlet_split_r must lie inside the annulus");
+
+  require(
+    0.0 <= pp.x_inlet_vane_lo &&
+      pp.x_inlet_vane_lo < pp.x_inlet_vane_hi &&
+      pp.x_inlet_vane_hi < pp.x_dome_lo,
+    "Require 0 <= x_inlet_vane_lo < x_inlet_vane_hi < x_dome_lo");
+  require(
+    pp.r_lower < pp.r_inlet_vane_lo &&
+      pp.r_inlet_vane_lo < pp.r_inlet_vane_hi &&
+      pp.r_inlet_vane_hi <= pp.inlet_lower_r,
+    "Inlet vane radii must be ordered below or at prob.inlet_lower_r");
+
+  require(
+    0.0 <= pp.x_evaporator_lo &&
+      pp.x_evaporator_lo < pp.x_evaporator_outer_hi &&
+      pp.x_evaporator_outer_hi <= pp.x_outer_turn_hi &&
+      pp.x_evaporator_outer_hi <= pp.x_evaporator_bore_hi &&
+      pp.x_evaporator_bore_hi <= pp.L,
+    "Require ordered evaporator x extents inside the domain");
+  require(
+    pp.r_evaporator_bore > 0.0 &&
+      pp.r_evaporator_bore < pp.r_evaporator_outer,
+    "Require 0 < r_evaporator_bore < r_evaporator_outer");
+
+  for (int n = 0; n < ProbParmDevice::num_liner_hole_rows; ++n) {
+    require(
+      pp.liner_hole_x[n] > 0.0 && pp.liner_hole_x[n] < pp.L,
+      "Liner hole x-stations must lie inside the domain");
+    require(
+      pp.liner_hole_radius[n] > 0.0,
+      "Liner hole radii must be positive");
+    require(
+      pp.liner_hole_spacing_deg[n] > 0.0,
+      "Liner hole spacing must be positive");
+    require(
+      pp.liner_hole_theta_start_deg[n] >= 0.0 &&
+        pp.liner_hole_theta_start_deg[n] <= pp.theta_deg,
+      "Liner hole theta_start must lie inside the sector");
+    require(
+      pp.liner_hole_omit_every_n[n] >= 0,
+      "Liner hole omit cadence must be nonnegative");
+  }
 
   require(
     0.0 < pp.x_dome_lo && pp.x_dome_lo < pp.x_dome_hi &&
@@ -94,6 +140,9 @@ parse_params(ProbParmDevice* prob_parm_device)
   pp.query("T_inlet", prob_parm_device->T_inlet);
   pp.query("p_inlet", prob_parm_device->p_inlet);
   pp.query("p_exit", prob_parm_device->p_exit);
+  pp.query("M_fuel_inlet", prob_parm_device->M_fuel_inlet);
+  pp.query("T_fuel_inlet", prob_parm_device->T_fuel_inlet);
+  pp.query("p_fuel_inlet", prob_parm_device->p_fuel_inlet);
   pp.query("p0", prob_parm_device->p0);
   pp.query("T0", prob_parm_device->T0);
   pp.query("inlet_type", prob_parm_device->inlet_type);
@@ -109,8 +158,32 @@ parse_params(ProbParmDevice* prob_parm_device)
 
   pp.query("inlet_lower_r", prob_parm_device->inlet_lower_r);
   pp.query("inlet_cap_length", prob_parm_device->inlet_cap_length);
+  pp.query(
+    "secondary_inlet_split_r",
+    prob_parm_device->secondary_inlet_split_r);
   pp.query("outlet_upper_r", prob_parm_device->outlet_upper_r);
   pp.query("outlet_lower_r", prob_parm_device->outlet_lower_r);
+
+  // Inlet vane.
+  pp.query("x_inlet_vane_lo", prob_parm_device->x_inlet_vane_lo);
+  pp.query("x_inlet_vane_hi", prob_parm_device->x_inlet_vane_hi);
+  pp.query("r_inlet_vane_lo", prob_parm_device->r_inlet_vane_lo);
+  pp.query("r_inlet_vane_hi", prob_parm_device->r_inlet_vane_hi);
+
+  // Evaporator.
+  pp.query("x_evaporator_lo", prob_parm_device->x_evaporator_lo);
+  pp.query(
+    "x_evaporator_outer_hi",
+    prob_parm_device->x_evaporator_outer_hi);
+  pp.query("x_evaporator_bore_hi", prob_parm_device->x_evaporator_bore_hi);
+  pp.query(
+    "y_evaporator_center",
+    prob_parm_device->y_evaporator_center);
+  pp.query(
+    "z_evaporator_center",
+    prob_parm_device->z_evaporator_center);
+  pp.query("r_evaporator_outer", prob_parm_device->r_evaporator_outer);
+  pp.query("r_evaporator_bore", prob_parm_device->r_evaporator_bore);
 
   // U-shaped combustor liner.
   pp.query("x_dome_lo", prob_parm_device->x_dome_lo);
@@ -185,6 +258,56 @@ EBAnnularSector::build(
   // follows the convention used by the original problem.
   const amrex::RealArray axis_point{
     AMREX_D_DECL(0.5 * L, 0.0, 0.0)};
+
+  auto make_capped_cylinder =
+    [&](const amrex::Real xlo,
+        const amrex::Real xhi,
+        const amrex::Real radius,
+        const amrex::Real y_center,
+        const amrex::Real z_center) {
+      const amrex::RealArray cylinder_axis_point{
+        AMREX_D_DECL(0.5 * (xlo + xhi), y_center, z_center)};
+
+      amrex::EB2::CylinderIF inside_radius(
+        radius, 0, cylinder_axis_point, false);
+
+      amrex::EB2::PlaneIF right_of_xlo(
+        {AMREX_D_DECL(xlo, 0.0, 0.0)},
+        {AMREX_D_DECL(1.0, 0.0, 0.0)},
+        true);
+
+      amrex::EB2::PlaneIF left_of_xhi(
+        {AMREX_D_DECL(xhi, 0.0, 0.0)},
+        {AMREX_D_DECL(-1.0, 0.0, 0.0)},
+        true);
+
+      auto axial_slab =
+        amrex::EB2::makeIntersection(
+          right_of_xlo,
+          left_of_xhi);
+
+      return amrex::EB2::makeIntersection(
+        inside_radius,
+        axial_slab);
+    };
+
+  auto make_liner_hole =
+    [&](const amrex::Real x,
+        const amrex::Real radius,
+        const amrex::Real liner_radius_mid,
+        const amrex::Real liner_thickness,
+        const amrex::Real theta_hole) {
+      const amrex::Real height =
+        liner_thickness + 2.0 * radius;
+
+      const amrex::RealArray hole_center{
+        AMREX_D_DECL(x, liner_radius_mid, 0.0)};
+
+      amrex::EB2::CylinderIF hole(
+        radius, height, 1, hole_center, false);
+
+      return amrex::EB2::rotate(hole, theta_hole, 0);
+    };
 
   // Construct a solid annular block:
   //
@@ -266,6 +389,140 @@ EBAnnularSector::build(
     pp->r_lower,
     pp->inlet_lower_r);
 
+  auto inlet_vane = make_annular_block(
+    pp->x_inlet_vane_lo,
+    pp->x_inlet_vane_hi,
+    pp->r_inlet_vane_lo,
+    pp->r_inlet_vane_hi);
+
+  auto evaporator_outer = make_capped_cylinder(
+    pp->x_evaporator_lo,
+    pp->x_evaporator_outer_hi,
+    pp->r_evaporator_outer,
+    pp->y_evaporator_center,
+    pp->z_evaporator_center);
+
+  auto evaporator_bore = make_capped_cylinder(
+    pp->x_evaporator_lo,
+    pp->x_evaporator_bore_hi,
+    pp->r_evaporator_bore,
+    pp->y_evaporator_center,
+    pp->z_evaporator_center);
+
+  const amrex::Real outer_liner_mid =
+    0.5 * (pp->r_outer_liner_lo + pp->r_outer_liner_hi);
+  const amrex::Real outer_liner_thickness =
+    pp->r_outer_liner_hi - pp->r_outer_liner_lo;
+
+  const amrex::Real inner_liner_mid =
+    0.5 * (pp->r_inner_liner_lo + pp->r_inner_liner_hi);
+  const amrex::Real inner_liner_thickness =
+    pp->r_inner_liner_hi - pp->r_inner_liner_lo;
+
+  constexpr amrex::Real deg_to_rad =
+    static_cast<amrex::Real>(M_PI) / 180.0;
+
+  auto outer_hole_1_0 = make_liner_hole(
+    pp->liner_hole_x[0], pp->liner_hole_radius[0], outer_liner_mid,
+    outer_liner_thickness, pp->liner_hole_theta_start_deg[0] * deg_to_rad);
+  auto outer_hole_1_1 = make_liner_hole(
+    pp->liner_hole_x[0], pp->liner_hole_radius[0], outer_liner_mid,
+    outer_liner_thickness,
+    (
+      pp->liner_hole_theta_start_deg[0] +
+      pp->liner_hole_spacing_deg[0]
+    ) * deg_to_rad);
+  auto outer_hole_1_2 = make_liner_hole(
+    pp->liner_hole_x[0], pp->liner_hole_radius[0], outer_liner_mid,
+    outer_liner_thickness,
+    (
+      pp->liner_hole_theta_start_deg[0] +
+      2.0 * pp->liner_hole_spacing_deg[0]
+    ) * deg_to_rad);
+  auto outer_hole_2 = make_liner_hole(
+    pp->liner_hole_x[1], pp->liner_hole_radius[1], outer_liner_mid,
+    outer_liner_thickness, pp->liner_hole_theta_start_deg[1] * deg_to_rad);
+  auto outer_hole_3 = make_liner_hole(
+    pp->liner_hole_x[2], pp->liner_hole_radius[2], outer_liner_mid,
+    outer_liner_thickness, pp->liner_hole_theta_start_deg[2] * deg_to_rad);
+  auto outer_hole_4 = make_liner_hole(
+    pp->liner_hole_x[3], pp->liner_hole_radius[3], outer_liner_mid,
+    outer_liner_thickness, pp->liner_hole_theta_start_deg[3] * deg_to_rad);
+  auto outer_hole_5 = make_liner_hole(
+    pp->liner_hole_x[4], pp->liner_hole_radius[4], outer_liner_mid,
+    outer_liner_thickness, pp->liner_hole_theta_start_deg[4] * deg_to_rad);
+  auto outer_hole_6 = make_liner_hole(
+    pp->liner_hole_x[5], pp->liner_hole_radius[5], outer_liner_mid,
+    outer_liner_thickness,
+    (
+      pp->liner_hole_theta_start_deg[5] +
+      pp->liner_hole_spacing_deg[5]
+    ) * deg_to_rad);
+  auto outer_hole_7 = make_liner_hole(
+    pp->liner_hole_x[6], pp->liner_hole_radius[6], outer_liner_mid,
+    outer_liner_thickness, pp->liner_hole_theta_start_deg[6] * deg_to_rad);
+
+  auto inner_hole_1_0 = make_liner_hole(
+    pp->liner_hole_x[0], pp->liner_hole_radius[0], inner_liner_mid,
+    inner_liner_thickness, pp->liner_hole_theta_start_deg[0] * deg_to_rad);
+  auto inner_hole_1_1 = make_liner_hole(
+    pp->liner_hole_x[0], pp->liner_hole_radius[0], inner_liner_mid,
+    inner_liner_thickness,
+    (
+      pp->liner_hole_theta_start_deg[0] +
+      pp->liner_hole_spacing_deg[0]
+    ) * deg_to_rad);
+  auto inner_hole_1_2 = make_liner_hole(
+    pp->liner_hole_x[0], pp->liner_hole_radius[0], inner_liner_mid,
+    inner_liner_thickness,
+    (
+      pp->liner_hole_theta_start_deg[0] +
+      2.0 * pp->liner_hole_spacing_deg[0]
+    ) * deg_to_rad);
+  auto inner_hole_2 = make_liner_hole(
+    pp->liner_hole_x[1], pp->liner_hole_radius[1], inner_liner_mid,
+    inner_liner_thickness, pp->liner_hole_theta_start_deg[1] * deg_to_rad);
+  auto inner_hole_3 = make_liner_hole(
+    pp->liner_hole_x[2], pp->liner_hole_radius[2], inner_liner_mid,
+    inner_liner_thickness, pp->liner_hole_theta_start_deg[2] * deg_to_rad);
+  auto inner_hole_4 = make_liner_hole(
+    pp->liner_hole_x[3], pp->liner_hole_radius[3], inner_liner_mid,
+    inner_liner_thickness, pp->liner_hole_theta_start_deg[3] * deg_to_rad);
+  auto inner_hole_5 = make_liner_hole(
+    pp->liner_hole_x[4], pp->liner_hole_radius[4], inner_liner_mid,
+    inner_liner_thickness, pp->liner_hole_theta_start_deg[4] * deg_to_rad);
+  auto inner_hole_6 = make_liner_hole(
+    pp->liner_hole_x[5], pp->liner_hole_radius[5], inner_liner_mid,
+    inner_liner_thickness,
+    (
+      pp->liner_hole_theta_start_deg[5] +
+      pp->liner_hole_spacing_deg[5]
+    ) * deg_to_rad);
+  auto inner_hole_7 = make_liner_hole(
+    pp->liner_hole_x[6], pp->liner_hole_radius[6], inner_liner_mid,
+    inner_liner_thickness, pp->liner_hole_theta_start_deg[6] * deg_to_rad);
+
+  auto liner_holes =
+    amrex::EB2::makeUnion(
+      outer_hole_1_0,
+      outer_hole_1_1,
+      outer_hole_1_2,
+      outer_hole_2,
+      outer_hole_3,
+      outer_hole_4,
+      outer_hole_5,
+      outer_hole_6,
+      outer_hole_7,
+      inner_hole_1_0,
+      inner_hole_1_1,
+      inner_hole_1_2,
+      inner_hole_2,
+      inner_hole_3,
+      inner_hole_4,
+      inner_hole_5,
+      inner_hole_6,
+      inner_hole_7);
+
   // ---------------------------------------------------------------------------
   // Red combustor walls from the meridional sketch
   // ---------------------------------------------------------------------------
@@ -298,10 +555,11 @@ EBAnnularSector::build(
     pp->r_upper_exit_lo,
     pp->r_outer_liner_hi);
 
-  // Points 3-4-5-6: upper axial outlet lip.
+  // Points 3-4-5-6: upper axial outlet lip. Keep this wall upstream of
+  // x_outlet_wall_lo so r > secondary_inlet_split_r reaches the x-high face.
   auto upper_exit_lip = make_annular_block(
     pp->x_outer_turn_lo,
-    L,
+    pp->x_outlet_wall_lo,
     pp->r_upper_exit_lo,
     pp->r_upper_exit_hi);
 
@@ -326,13 +584,6 @@ EBAnnularSector::build(
     pp->r_inner_wall_two_top,
     pp->r_inner_liner_lo);
 
-  // Close the outer plenum at the outlet.
-  auto upper_outlet_wall = make_annular_block(
-    pp->x_outlet_wall_lo,
-    L,
-    pp->r_upper_exit_hi,
-    pp->r_upper);
-
   auto combustor_walls =
     amrex::EB2::makeUnion(
       outer_liner,
@@ -340,18 +591,31 @@ EBAnnularSector::build(
       inner_liner,
       outer_exit_turn,
       upper_exit_lip,
+      inlet_vane,
+      evaporator_outer,
       inner_wall_one,
       inner_wall_two,
-      lower_outlet_wall,
-      upper_outlet_wall);
+      lower_outlet_wall);
 
-  auto solid_region =
+  auto solid_without_evaporator_bore =
     amrex::EB2::makeUnion(
       inner_solid,
       outer_solid,
       sector_solid,
       inlet_wall_block,
       combustor_walls);
+
+  auto evaporator_bore_cutout =
+    amrex::EB2::makeComplement(evaporator_bore);
+
+  auto liner_hole_cutouts =
+    amrex::EB2::makeComplement(liner_holes);
+
+  auto solid_region =
+    amrex::EB2::makeIntersection(
+      solid_without_evaporator_bore,
+      evaporator_bore_cutout,
+      liner_hole_cutouts);
 
   auto gshop =
     amrex::EB2::makeShop(solid_region);

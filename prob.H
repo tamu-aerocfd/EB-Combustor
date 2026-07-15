@@ -253,7 +253,46 @@ bcnormal(
         s_int[UFS + n] / rho;
     }
 
-    if (prob_parm.outlet_type == 0) {
+    const amrex::Real r =
+      std::sqrt(x[1] * x[1] + x[2] * x[2]);
+
+    const bool is_secondary_fuel_inlet =
+      r > prob_parm.secondary_inlet_split_r;
+
+    if (is_secondary_fuel_inlet) {
+
+      auto eos =
+        pele::physics::PhysicsType::eos();
+
+      const amrex::Real p_in =
+        prob_parm.p_fuel_inlet;
+
+      const amrex::Real T_in =
+        prob_parm.T_fuel_inlet;
+
+      eos.PYT2RE(
+        p_in,
+        massfrac,
+        T_in,
+        rho,
+        eint);
+
+      amrex::Real Cs_in;
+
+      eos.RTY2Cs(
+        rho,
+        T_in,
+        massfrac,
+        Cs_in);
+
+      u =
+        -prob_parm.M_fuel_inlet * Cs_in;
+
+      v = 0.0;
+      w = 0.0;
+      T = T_in;
+
+    } else if (prob_parm.outlet_type == 0) {
 
       // First-order extrapolation.
 
