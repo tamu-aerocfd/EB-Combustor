@@ -81,10 +81,11 @@ prob.r_lower = 1.5
 prob.inlet_lower_r = 5.4
 prob.outlet_upper_r = 4.0
 prob.outlet_lower_r = 2.6
-prob.theta_deg = 20.0
+prob.theta_deg = 15.0
 
 eb2.geom_type = "annular-sector"
 eb2.small_volfrac = 1.e-6
+eb2.cover_multiple_cuts = 1
 
 # EB WALL CONDITIONS
 pelec.eb_boundary_T = 300.0
