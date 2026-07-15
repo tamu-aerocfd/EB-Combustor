@@ -76,7 +76,7 @@ prob.turb_inflow_type = "None"
 prob.L = 9.0
 prob.r_upper = 6.0
 prob.r_lower = 1.5
-prob.theta_deg = 20.0
+prob.theta_deg = 15.0
 
 prob.inlet_lower_r = 5.4
 prob.inlet_cap_length = 0.25
