@@ -306,7 +306,7 @@ EBAnnularSector::build(
       amrex::EB2::CylinderIF hole(
         radius, height, 1, hole_center, false);
 
-      return amrex::rotate(hole, theta_hole, 0);
+      return amrex::EB2::rotate(hole, theta_hole, 0);
     };
 
   // Construct a solid annular block:
