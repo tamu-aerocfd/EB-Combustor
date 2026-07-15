@@ -1,0 +1,98 @@
+# ------------------ INPUTS TO MAIN PROGRAM -------------------
+max_step = 10000
+stop_time = 1.0e-3
+
+# GEOMETRY
+geometry.is_periodic = 0 0 0
+geometry.coord_sys   = 0
+
+# Domain should cover the sector around +y
+geometry.prob_lo = 0.0  0.0  0.0
+geometry.prob_hi = 9.0  6.375  2.25
+
+amr.n_cell = 384 272 96
+
+# BOUNDARY CONDITIONS
+# x-low inlet, x-high outlet, y/z extrap because EB defines walls
+pelec.lo_bc = "Hard"     "FOExtrap" "Symmetry"
+pelec.hi_bc = "FOExtrap" "FOExtrap" "FOExtrap"
+
+# PHYSICS
+pelec.do_hydro = 1
+pelec.do_mol = 1
+pelec.diffuse_vel = 1
+pelec.diffuse_temp = 1
+pelec.diffuse_spec = 1
+pelec.diffuse_enth = 0
+
+pelec.do_react = 0
+pelec.chem_integrator = "ReactorNull"
+pelec.add_ext_src = 0
+
+# TIME STEP CONTROL
+pelec.dt_cutoff   = 5.e-20
+pelec.cfl         = 0.2
+pelec.init_shrink = 1.0
+pelec.change_max  = 1.05
+
+# DIAGNOSTICS
+pelec.sum_interval = 1
+pelec.v = 1
+amr.v = 1
+amr.data_log = datlog extremalog
+
+# AMR / GRIDDING
+amr.max_level = 1
+amr.ref_ratio = 2 2 2 2
+amr.regrid_int = 4 4 4 4
+amr.blocking_factor = 8
+amr.max_grid_size = 64
+
+# CHECKPOINTS
+amr.checkpoint_files_output = 1
+amr.check_file = chk
+amr.check_int = 500
+
+# PLOTFILES
+amr.plot_files_output = 1
+amr.plot_file = plt
+amr.plot_int = 100
+amr.derive_plot_vars = ALL
+pelec.plot_massfrac = 1
+
+# PROBLEM FLOW PARAMETERS
+prob.p0 = 1.013e6
+prob.T0 = 300.0
+
+prob.M_inlet = 0.10
+prob.T_inlet = 300.0
+prob.p_inlet = 1.013e6
+prob.p_exit = 1.0e6
+
+prob.inlet_type = 0
+prob.outlet_type = 1
+prob.do_sponge_zones = 0
+prob.turb_inflow_type = "None"
+
+# ANNULAR-SECTOR GEOMETRY
+prob.L = 9.0
+prob.r_upper = 6.0
+prob.r_lower = 1.5
+prob.inlet_lower_r = 5.4
+prob.outlet_upper_r = 4.0
+prob.outlet_lower_r = 2.6
+prob.theta_deg = 20.0
+
+eb2.geom_type = "annular-sector"
+eb2.small_volfrac = 1.e-6
+
+# EB WALL CONDITIONS
+pelec.eb_boundary_T = 300.0
+pelec.eb_isothermal = 0
+pelec.eb_noslip = 0
+
+# EB GRADIENT STENCIL
+ebd.boundary_grad_stencil_type = 0
+
+# TAGGING
+tagging.max_vfracerr_lev = 0

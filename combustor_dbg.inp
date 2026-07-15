@@ -1,0 +1,125 @@
+# ------------------ INPUTS TO MAIN PROGRAM -------------------
+max_step = 1
+stop_time = 1.0e-10
+
+# GEOMETRY
+geometry.is_periodic = 0 0 0
+geometry.coord_sys = 0
+
+geometry.prob_lo = 0.0 0.0   0.0
+geometry.prob_hi = 9.0 6.375 2.25
+
+# Reduced isotropic mesh for geometry debugging
+amr.n_cell = 192 136 48
+
+# BOUNDARY CONDITIONS
+pelec.lo_bc = "Hard"     "FOExtrap" "Symmetry"
+pelec.hi_bc = "FOExtrap" "FOExtrap" "FOExtrap"
+
+# PHYSICS
+pelec.do_hydro = 1
+pelec.do_mol = 1
+
+pelec.diffuse_vel = 1
+pelec.diffuse_temp = 1
+pelec.diffuse_spec = 1
+pelec.diffuse_enth = 0
+
+pelec.do_react = 0
+pelec.chem_integrator = "ReactorNull"
+pelec.add_ext_src = 0
+
+# TIME STEP CONTROL
+pelec.dt_cutoff = 5.e-20
+pelec.cfl = 0.2
+pelec.init_shrink = 1.0
+pelec.change_max = 1.05
+
+# DIAGNOSTICS
+pelec.sum_interval = 1
+pelec.v = 2
+amr.v = 2
+amr.data_log = datlog extremalog
+
+# BASE GRID ONLY
+amr.max_level = 0
+amr.blocking_factor = 8
+amr.max_grid_size = 64
+
+# NO CHECKPOINT FOR GEOMETRY TEST
+amr.checkpoint_files_output = 0
+
+# WRITE ONE PLOTFILE
+amr.plot_files_output = 1
+amr.plot_file = plt_geom
+amr.plot_int = 1
+amr.derive_plot_vars = density pressure Temp x_velocity
+
+pelec.plot_massfrac = 0
+pelec.plot_vfrac = 1
+
+# FLOW PARAMETERS
+prob.p0 = 1.013e6
+prob.T0 = 300.0
+
+prob.M_inlet = 0.10
+prob.T_inlet = 300.0
+prob.p_inlet = 1.013e6
+prob.p_exit = 1.0e6
+
+prob.inlet_type = 0
+prob.outlet_type = 1
+prob.do_sponge_zones = 0
+prob.turb_inflow_type = "None"
+
+# ANNULAR-SECTOR ENVELOPE
+prob.L = 9.0
+prob.r_upper = 6.0
+prob.r_lower = 1.5
+prob.theta_deg = 20.0
+
+prob.inlet_lower_r = 5.4
+prob.inlet_cap_length = 0.25
+
+prob.outlet_upper_r = 4.0
+prob.outlet_lower_r = 2.6
+
+# U-SHAPED COMBUSTOR LINER
+prob.x_dome_lo = 1.40
+prob.x_dome_hi = 1.50
+
+prob.r_inner_liner_lo = 2.40
+prob.r_inner_liner_hi = 2.50
+
+prob.r_outer_liner_lo = 5.30
+prob.r_outer_liner_hi = 5.40
+
+prob.x_outer_turn_lo = 8.3
+prob.x_outer_turn_hi = 8.4
+
+prob.r_upper_exit_lo = 4.00
+prob.r_upper_exit_hi = 4.10
+
+# INNER CASING FEATURES
+prob.x_inner_wall_one_end = 1.3
+prob.r_inner_wall_one_top = 1.8
+
+prob.x_inner_wall_two_start = 5.50
+prob.r_inner_wall_two_top = 2.0
+
+# OUTLET CLOSURES
+prob.x_outlet_wall_lo = 8.90
+
+# EB GEOMETRY
+eb2.geom_type = "annular-sector"
+eb2.small_volfrac = 1.e-6
+
+# EB WALL CONDITIONS
+pelec.eb_boundary_T = 300.0
+pelec.eb_isothermal = 0
+pelec.eb_noslip = 0
+
+ebd.boundary_grad_stencil_type = 0
+
+# NO AMR TAGGING IN INITIAL TEST
+tagging.max_vfracerr_lev = 0
