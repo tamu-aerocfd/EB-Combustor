@@ -92,7 +92,7 @@ struct ProbParmDevice
   amrex::Real liner_hole_x[num_liner_hole_rows] =
     {2.3, 3.05, 3.9, 4.7, 5.6, 6.5, 7.5};
   amrex::Real liner_hole_radius[num_liner_hole_rows] =
-    {0.1, 0.15, 0.2, 0.2, 0.2, 0.3, 0.1};
+    {0.1, 0.15, 0.2, 0.2, 0.2, 0.25, 0.1};
   amrex::Real liner_hole_spacing_deg[num_liner_hole_rows] =
     {6.0, 30.0, 30.0, 30.0, 30.0, 10.0, 15.0};
   amrex::Real liner_hole_theta_start_deg[num_liner_hole_rows] =

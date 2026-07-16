@@ -468,11 +468,6 @@ EBAnnularSector::build(
   auto evaporator_bore_cutout =
     amrex::EB2::makeComplement(evaporator_bore);
 
-  auto evaporator_shell =
-    amrex::EB2::makeIntersection(
-      evaporator_outer,
-      evaporator_bore_cutout);
-
   auto fuel_line_outer = make_capped_cylinder(
     pp->x_fuel_line_lo,
     L,
@@ -670,7 +665,7 @@ EBAnnularSector::build(
     pp->secondary_inlet_split_r,
     pp->r_upper);
 
-  auto combustor_walls =
+  auto combustor_walls_before_evaporator_bore =
     amrex::EB2::makeUnion(
       outer_liner,
       upstream_dome,
@@ -678,19 +673,50 @@ EBAnnularSector::build(
       outer_exit_turn,
       upper_exit_lip,
       inlet_vane,
-      evaporator_shell,
-      fuel_line_outer,
+      evaporator_outer,
       inner_wall_one,
       inner_wall_two,
       lower_outlet_wall,
       upper_fuel_inlet_wall);
 
-  auto solid_before_cutouts =
+  auto solid_before_evaporator_bore =
     amrex::EB2::makeUnion(
       inner_solid,
       outer_solid,
       inlet_wall_block,
-      combustor_walls);
+      combustor_walls_before_evaporator_bore);
+
+  // Apply the evaporator bore before adding the fuel-line wall so the
+  // evaporator interior cuts through the liner but does not erase the
+  // dedicated fuel-line tube.
+  auto solid_after_evaporator_bore =
+    amrex::EB2::makeIntersection(
+      solid_before_evaporator_bore,
+      evaporator_bore_cutout);
+
+  auto solid_before_cutouts =
+    amrex::EB2::makeUnion(
+      solid_after_evaporator_bore,
+      fuel_line_outer);
+
+  auto fuel_line_bore_cutout =
+    amrex::EB2::makeComplement(fuel_line_bore);
+
+  auto liner_hole_cutouts =
+    amrex::EB2::makeComplement(liner_holes);
+
+  auto cut_solid_region =
+    amrex::EB2::makeIntersection(
+      solid_before_cutouts,
+      fuel_line_bore_cutout,
+      liner_hole_cutouts);
+
+  // Apply the sector wall after subtracting holes so hole cutouts cannot
+  // perforate the symmetry-sector boundary.
+  auto solid_region =
+    amrex::EB2::makeUnion(
+      cut_solid_region,
+      sector_solid);
 
   auto fuel_line_bore_cutout =
     amrex::EB2::makeComplement(fuel_line_bore);

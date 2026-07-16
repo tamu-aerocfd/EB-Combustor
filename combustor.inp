@@ -110,7 +110,7 @@ prob.r_fuel_line_inner = 0.12
 
 # LINER HOLE ROWS
 prob.liner_hole_x = 2.3 3.05 3.9 4.7 5.6 6.5 7.5
-prob.liner_hole_radius = 0.1 0.15 0.2 0.2 0.2 0.3 0.1
+prob.liner_hole_radius = 0.1 0.15 0.2 0.2 0.2 0.25 0.1
 prob.liner_hole_spacing_deg = 6.0 30.0 30.0 30.0 30.0 10.0 15.0
 prob.liner_hole_theta_start_deg = 0.0 15.0 15.0 15.0 15.0 0.0 7.5
 prob.liner_hole_omit_every_n = 0 0 0 0 0 3 0
