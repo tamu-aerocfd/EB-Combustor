@@ -69,6 +69,11 @@ prob.T_inlet = 300.0
 prob.p_inlet = 1.013e6
 prob.p_exit = 1.0e6
 
+# SECONDARY FUEL INLET PARAMETERS
+prob.M_fuel_inlet = 0.10
+prob.T_fuel_inlet = 300.0
+prob.p_fuel_inlet = 1.013e6
+
 prob.inlet_type = 0
 prob.outlet_type = 1
 prob.do_sponge_zones = 0
@@ -81,7 +86,29 @@ prob.r_lower = 1.5
 prob.inlet_lower_r = 5.4
 prob.outlet_upper_r = 4.0
 prob.outlet_lower_r = 2.6
+prob.secondary_inlet_split_r = 4.0
 prob.theta_deg = 15.0
+
+# INLET VANE
+prob.x_inlet_vane_lo = 0.0
+prob.x_inlet_vane_hi = 0.5
+prob.r_inlet_vane_lo = 5.3
+prob.r_inlet_vane_hi = 5.4
+
+# EVAPORATOR
+prob.x_evaporator_lo = 2.0
+prob.x_evaporator_bore_hi = 9.0
+prob.y_evaporator_center = 4.6
+prob.z_evaporator_center = 0.0
+prob.r_evaporator_outer = 0.4
+prob.r_evaporator_bore = 0.3
+
+# LINER HOLE ROWS
+prob.liner_hole_x = 2.3 3.05 3.9 4.7 5.6 6.5 7.5
+prob.liner_hole_radius = 0.1 0.15 0.2 0.2 0.2 0.3 0.1
+prob.liner_hole_spacing_deg = 6.0 30.0 30.0 30.0 30.0 10.0 15.0
+prob.liner_hole_theta_start_deg = 0.0 15.0 15.0 15.0 15.0 0.0 7.5
+prob.liner_hole_omit_every_n = 0 0 0 0 0 3 0
 
 eb2.geom_type = "annular-sector"
 eb2.small_volfrac = 1.e-6

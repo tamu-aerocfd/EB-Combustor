@@ -1,5 +1,7 @@
 #include "prob.H"
 
+#include <AMReX_Vector.H>
+
 #include <cmath>
 
 namespace
@@ -180,6 +182,49 @@ parse_params(ProbParmDevice* prob_parm_device)
     prob_parm_device->z_evaporator_center);
   pp.query("r_evaporator_outer", prob_parm_device->r_evaporator_outer);
   pp.query("r_evaporator_bore", prob_parm_device->r_evaporator_bore);
+
+  auto query_real_array =
+    [&](const char* name, amrex::Real* values) {
+      amrex::Vector<amrex::Real> queried_values;
+      if (
+        pp.queryarr(
+          name,
+          queried_values,
+          0,
+          ProbParmDevice::num_liner_hole_rows)) {
+        for (int n = 0; n < ProbParmDevice::num_liner_hole_rows; ++n) {
+          values[n] = queried_values[n];
+        }
+      }
+    };
+
+  auto query_int_array =
+    [&](const char* name, int* values) {
+      amrex::Vector<int> queried_values;
+      if (
+        pp.queryarr(
+          name,
+          queried_values,
+          0,
+          ProbParmDevice::num_liner_hole_rows)) {
+        for (int n = 0; n < ProbParmDevice::num_liner_hole_rows; ++n) {
+          values[n] = queried_values[n];
+        }
+      }
+    };
+
+  // Liner holes.
+  query_real_array("liner_hole_x", prob_parm_device->liner_hole_x);
+  query_real_array("liner_hole_radius", prob_parm_device->liner_hole_radius);
+  query_real_array(
+    "liner_hole_spacing_deg",
+    prob_parm_device->liner_hole_spacing_deg);
+  query_real_array(
+    "liner_hole_theta_start_deg",
+    prob_parm_device->liner_hole_theta_start_deg);
+  query_int_array(
+    "liner_hole_omit_every_n",
+    prob_parm_device->liner_hole_omit_every_n);
 
   // U-shaped combustor liner.
   pp.query("x_dome_lo", prob_parm_device->x_dome_lo);
@@ -593,11 +638,10 @@ EBAnnularSector::build(
       inner_wall_two,
       lower_outlet_wall);
 
-  auto solid_without_evaporator_bore =
+  auto solid_before_cutouts =
     amrex::EB2::makeUnion(
       inner_solid,
       outer_solid,
-      sector_solid,
       inlet_wall_block,
       combustor_walls);
 
@@ -607,11 +651,18 @@ EBAnnularSector::build(
   auto liner_hole_cutouts =
     amrex::EB2::makeComplement(liner_holes);
 
-  auto solid_region =
+  auto cut_solid_region =
     amrex::EB2::makeIntersection(
-      solid_without_evaporator_bore,
+      solid_before_cutouts,
       evaporator_bore_cutout,
       liner_hole_cutouts);
+
+  // Apply the sector wall after subtracting holes so hole cutouts cannot
+  // perforate the symmetry-sector boundary.
+  auto solid_region =
+    amrex::EB2::makeUnion(
+      cut_solid_region,
+      sector_solid);
 
   auto gshop =
     amrex::EB2::makeShop(solid_region);

@@ -1,25 +1,25 @@
 # ------------------ INPUTS TO MAIN PROGRAM -------------------
-max_step = 1
-stop_time = 1.0e-10
+max_step = 10000
+stop_time = 1.0e-3
 
 # GEOMETRY
 geometry.is_periodic = 0 0 0
-geometry.coord_sys = 0
+geometry.coord_sys   = 0
 
-geometry.prob_lo = 0.0 0.0   0.0
-geometry.prob_hi = 9.0 6.375 2.25
+# Domain should cover the sector around +y
+geometry.prob_lo = 0.0  0.0  0.0
+geometry.prob_hi = 9.0  6.375  2.25
 
-# Reduced isotropic mesh for geometry debugging
-amr.n_cell = 192 136 48
+amr.n_cell = 384 272 96
 
 # BOUNDARY CONDITIONS
+# x-low inlet, x-high outlet, y/z extrap because EB defines walls
 pelec.lo_bc = "Hard"     "FOExtrap" "Symmetry"
 pelec.hi_bc = "FOExtrap" "FOExtrap" "FOExtrap"
 
 # PHYSICS
 pelec.do_hydro = 1
 pelec.do_mol = 1
-
 pelec.diffuse_vel = 1
 pelec.diffuse_temp = 1
 pelec.diffuse_spec = 1
@@ -30,35 +30,37 @@ pelec.chem_integrator = "ReactorNull"
 pelec.add_ext_src = 0
 
 # TIME STEP CONTROL
-pelec.dt_cutoff = 5.e-20
-pelec.cfl = 0.2
+pelec.dt_cutoff   = 5.e-20
+pelec.cfl         = 0.2
 pelec.init_shrink = 1.0
-pelec.change_max = 1.05
+pelec.change_max  = 1.05
 
 # DIAGNOSTICS
 pelec.sum_interval = 1
-pelec.v = 2
-amr.v = 2
+pelec.v = 1
+amr.v = 1
 amr.data_log = datlog extremalog
 
-# BASE GRID ONLY
-amr.max_level = 0
+# AMR / GRIDDING
+amr.max_level = 1
+amr.ref_ratio = 2 2 2 2
+amr.regrid_int = 4 4 4 4
 amr.blocking_factor = 8
 amr.max_grid_size = 64
 
-# NO CHECKPOINT FOR GEOMETRY TEST
-amr.checkpoint_files_output = 0
+# CHECKPOINTS
+amr.checkpoint_files_output = 1
+amr.check_file = chk_h2
+amr.check_int = 500
 
-# WRITE ONE PLOTFILE
+# PLOTFILES
 amr.plot_files_output = 1
-amr.plot_file = plt_geom
-amr.plot_int = 1
-amr.derive_plot_vars = density pressure Temp x_velocity
+amr.plot_file = plt_h2
+amr.plot_int = 100
+amr.derive_plot_vars = ALL
+pelec.plot_massfrac = 1
 
-pelec.plot_massfrac = 0
-pelec.plot_vfrac = 1
-
-# FLOW PARAMETERS
+# PROBLEM FLOW PARAMETERS
 prob.p0 = 1.013e6
 prob.T0 = 300.0
 
@@ -67,8 +69,8 @@ prob.T_inlet = 300.0
 prob.p_inlet = 1.013e6
 prob.p_exit = 1.0e6
 
-# SECONDARY FUEL INLET PARAMETERS
-prob.M_fuel_inlet = 0.10
+# SECONDARY FUEL INLET PARAMETERS (hydrogen-like)
+prob.M_fuel_inlet = 0.20
 prob.T_fuel_inlet = 300.0
 prob.p_fuel_inlet = 1.013e6
 
@@ -77,44 +79,15 @@ prob.outlet_type = 1
 prob.do_sponge_zones = 0
 prob.turb_inflow_type = "None"
 
-# ANNULAR-SECTOR ENVELOPE
+# ANNULAR-SECTOR GEOMETRY
 prob.L = 9.0
 prob.r_upper = 6.0
 prob.r_lower = 1.5
-prob.theta_deg = 15.0
-
 prob.inlet_lower_r = 5.4
-prob.inlet_cap_length = 0.25
-
 prob.outlet_upper_r = 4.0
 prob.outlet_lower_r = 2.6
 prob.secondary_inlet_split_r = 4.0
-
-# U-SHAPED COMBUSTOR LINER
-prob.x_dome_lo = 1.40
-prob.x_dome_hi = 1.50
-
-prob.r_inner_liner_lo = 2.40
-prob.r_inner_liner_hi = 2.50
-
-prob.r_outer_liner_lo = 5.30
-prob.r_outer_liner_hi = 5.40
-
-prob.x_outer_turn_lo = 8.3
-prob.x_outer_turn_hi = 8.4
-
-prob.r_upper_exit_lo = 4.00
-prob.r_upper_exit_hi = 4.10
-
-# INNER CASING FEATURES
-prob.x_inner_wall_one_end = 1.3
-prob.r_inner_wall_one_top = 1.8
-
-prob.x_inner_wall_two_start = 5.50
-prob.r_inner_wall_two_top = 2.0
-
-# OUTLET CLOSURES
-prob.x_outlet_wall_lo = 8.90
+prob.theta_deg = 15.0
 
 # INLET VANE
 prob.x_inlet_vane_lo = 0.0
@@ -137,7 +110,6 @@ prob.liner_hole_spacing_deg = 6.0 30.0 30.0 30.0 30.0 10.0 15.0
 prob.liner_hole_theta_start_deg = 0.0 15.0 15.0 15.0 15.0 0.0 7.5
 prob.liner_hole_omit_every_n = 0 0 0 0 0 3 0
 
-# EB GEOMETRY
 eb2.geom_type = "annular-sector"
 eb2.small_volfrac = 1.e-6
 eb2.cover_multiple_cuts = 1
@@ -147,7 +119,8 @@ pelec.eb_boundary_T = 300.0
 pelec.eb_isothermal = 0
 pelec.eb_noslip = 0
 
+# EB GRADIENT STENCIL
 ebd.boundary_grad_stencil_type = 0
 
-# NO AMR TAGGING IN INITIAL TEST
+# TAGGING
 tagging.max_vfracerr_lev = 0
