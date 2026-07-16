@@ -22,6 +22,10 @@ struct ProbParmDevice
   amrex::Real p_inlet = 1.013e6;
   amrex::Real p_exit = 1.013e6;
 
+  amrex::Real M_fuel_inlet = 0.1;
+  amrex::Real T_fuel_inlet = 300.0;
+  amrex::Real p_fuel_inlet = 1.013e6;
+
   // Initial domain state.
   amrex::Real p0 = 1.013e6; // [erg cm^-3]
   amrex::Real T0 = 300.0;
@@ -35,7 +39,7 @@ struct ProbParmDevice
   amrex::Real r_upper = 6.0;
   amrex::Real r_lower = 1.5;
 
-  amrex::Real theta_deg = 20.0;
+  amrex::Real theta_deg = 15.0;
 
   // The x-low boundary is open only for r > inlet_lower_r.
   amrex::Real inlet_lower_r = 5.4;
@@ -43,9 +47,58 @@ struct ProbParmDevice
   // Physical axial thickness of the inlet wall.
   amrex::Real inlet_cap_length = 0.25;
 
-  // Nominal radial opening at the x-high boundary.
+  // Split radius at the x-high boundary: r below this value is outlet,
+  // r above this value is the secondary fuel inlet.
+  amrex::Real secondary_inlet_split_r = 4.0;
+
+  // Nominal radial opening at the x-high outlet.
   amrex::Real outlet_upper_r = 4.0;
   amrex::Real outlet_lower_r = 2.6;
+
+  // ---------------------------------------------------------------------------
+  // Inlet vane
+  // ---------------------------------------------------------------------------
+
+  amrex::Real x_inlet_vane_lo = 0.0;
+  amrex::Real x_inlet_vane_hi = 0.5;
+  amrex::Real r_inlet_vane_lo = 5.3;
+  amrex::Real r_inlet_vane_hi = 5.4;
+
+  // ---------------------------------------------------------------------------
+  // Evaporator
+  // ---------------------------------------------------------------------------
+
+  amrex::Real x_evaporator_lo = 2.0;
+  amrex::Real x_evaporator_bore_hi = 8.5;
+  amrex::Real y_evaporator_center = 4.6;
+  amrex::Real z_evaporator_center = 0.0;
+  amrex::Real r_evaporator_outer = 0.4;
+  amrex::Real r_evaporator_bore = 0.3;
+
+  // ---------------------------------------------------------------------------
+  // Fuel line
+  // ---------------------------------------------------------------------------
+
+  amrex::Real x_fuel_line_lo = 2.0;
+  amrex::Real r_fuel_line_outer = 0.20;
+  amrex::Real r_fuel_line_inner = 0.12;
+
+  // ---------------------------------------------------------------------------
+  // Liner holes
+  // ---------------------------------------------------------------------------
+
+  static constexpr int num_liner_hole_rows = 7;
+
+  amrex::Real liner_hole_x[num_liner_hole_rows] =
+    {2.3, 3.05, 3.9, 4.7, 5.6, 6.5, 7.5};
+  amrex::Real liner_hole_radius[num_liner_hole_rows] =
+    {0.1, 0.15, 0.2, 0.2, 0.2, 0.25, 0.1};
+  amrex::Real liner_hole_spacing_deg[num_liner_hole_rows] =
+    {6.0, 30.0, 30.0, 30.0, 30.0, 10.0, 15.0};
+  amrex::Real liner_hole_theta_start_deg[num_liner_hole_rows] =
+    {0.0, 15.0, 15.0, 15.0, 15.0, 0.0, 7.5};
+  int liner_hole_omit_every_n[num_liner_hole_rows] =
+    {0, 0, 0, 0, 0, 3, 0};
 
   // ---------------------------------------------------------------------------
   // U-shaped combustor liner
@@ -94,7 +147,7 @@ struct ProbParmDevice
   // Axial start of the outlet closures.
   //
   // The lower closure joins inner wall two to the inner liner.
-  // The upper closure joins the upper outlet lip to the outer casing.
+  // The upper side remains open at x-high for the secondary fuel inlet.
   //
   amrex::Real x_outlet_wall_lo = 8.70;
 
