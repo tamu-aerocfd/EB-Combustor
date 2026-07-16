@@ -10,7 +10,8 @@ geometry.prob_lo = 0.0 0.0   0.0
 geometry.prob_hi = 9.0 6.375 2.25
 
 # Reduced isotropic mesh for geometry debugging
-amr.n_cell = 192 136 48
+#amr.n_cell = 192 136 48
+amr.n_cell = 384 272 96
 
 # BOUNDARY CONDITIONS
 pelec.lo_bc = "Hard"     "FOExtrap" "Symmetry"
@@ -42,7 +43,7 @@ amr.v = 2
 amr.data_log = datlog extremalog
 
 # BASE GRID ONLY
-amr.max_level = 0
+amr.max_level = 1
 amr.blocking_factor = 8
 amr.max_grid_size = 64
 
