@@ -1,7 +1,7 @@
 #include "prob.H"
 
 #include <AMReX_MFIter.H>
-#include <AMReX_ParallelFor.H>
+#include <AMReX_GpuLaunch.H>
 #include <AMReX_Vector.H>
 
 #include <cmath>

@@ -29,7 +29,7 @@ PELE_USE_MAGMA = FALSE
 PELE_COMPILE_AJACOBIAN = FALSE
 # Eos_dir := Soave-Redlich-Kwong
 Eos_Model := GammaLaw
-Chemistry_Model := Null
+Chemistry_Model := LiDryer
 Transport_Model := Constant
 
 # GNU Make
