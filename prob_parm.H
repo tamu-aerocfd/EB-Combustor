@@ -83,7 +83,7 @@ struct ProbParmDevice
 
   amrex::Real x_fuel_line_lo = 2.0;
   amrex::Real r_fuel_line_outer = 0.20;
-  amrex::Real r_fuel_line_inner = 0.12;
+  amrex::Real r_fuel_line_inner = 0.15;
 
   // ---------------------------------------------------------------------------
   // Spark ignition
@@ -106,7 +106,7 @@ struct ProbParmDevice
   amrex::Real liner_hole_radius[num_liner_hole_rows] =
     {0.1, 0.15, 0.2, 0.2, 0.2, 0.25, 0.1};
   amrex::Real liner_hole_spacing_deg[num_liner_hole_rows] =
-    {6.0, 30.0, 30.0, 30.0, 30.0, 10.0, 15.0};
+    {6.0, 30.0, 30.0, 30.0, 30.0, 9.0, 15.0};
   amrex::Real liner_hole_theta_start_deg[num_liner_hole_rows] =
     {0.0, 15.0, 15.0, 15.0, 15.0, 0.0, 7.5};
   int liner_hole_omit_every_n[num_liner_hole_rows] =
