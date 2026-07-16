@@ -51,7 +51,7 @@ amr.checkpoint_files_output = 0
 
 # WRITE ONE PLOTFILE
 amr.plot_files_output = 1
-amr.plot_file = plt_geom
+amr.plot_file = plt_geom_h2
 amr.plot_int = 1
 amr.derive_plot_vars = density pressure Temp x_velocity
 
@@ -67,8 +67,8 @@ prob.T_inlet = 300.0
 prob.p_inlet = 1.013e6
 prob.p_exit = 1.0e6
 
-# SECONDARY FUEL INLET PARAMETERS
-prob.M_fuel_inlet = 0.10
+# SECONDARY FUEL INLET PARAMETERS (hydrogen-like)
+prob.M_fuel_inlet = 0.20
 prob.T_fuel_inlet = 300.0
 prob.p_fuel_inlet = 1.013e6
 
