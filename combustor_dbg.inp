@@ -74,6 +74,7 @@ prob.T_fuel_inlet = 300.0
 prob.p_fuel_inlet = 1.013e6
 prob.fuel_species_id = -1
 prob.mass_frac_fuel = 1.0
+prob.debug_fuel_port = 0
 prob.air_mole_frac_o2 = 0.21
 prob.air_mole_frac_n2 = 0.79
 

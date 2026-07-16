@@ -26,6 +26,7 @@
 #include "Geometry.H"
 
 #include <cmath>
+#include <cstdio>
 #include <string>
 
 void parse_params(ProbParmDevice* prob_parm_device);
@@ -319,6 +320,14 @@ bcnormal(
       pc_is_fuel_inlet_port(x, prob_parm);
 
     if (is_secondary_fuel_inlet) {
+
+      if (prob_parm.debug_fuel_port) {
+        printf(
+          "Fuel port BC reached at x=(%.16g, %.16g, %.16g)\n",
+          static_cast<double>(x[0]),
+          static_cast<double>(x[1]),
+          static_cast<double>(x[2]));
+      }
 
       const int fuel_species_id =
         pc_fuel_species_id(prob_parm);
