@@ -47,14 +47,24 @@ validate_geometry(const ProbParmDevice& pp)
 
   require(
     0.0 <= pp.x_evaporator_lo &&
-      pp.x_evaporator_lo < pp.x_outer_turn_hi &&
-      pp.x_outer_turn_hi <= pp.x_evaporator_bore_hi &&
-      pp.x_evaporator_bore_hi <= pp.L,
+      pp.x_evaporator_lo < pp.x_evaporator_bore_hi &&
+      pp.x_evaporator_bore_hi <= pp.x_outer_turn_hi &&
+      pp.x_outer_turn_hi < pp.L,
     "Require ordered evaporator x extents inside the domain");
   require(
     pp.r_evaporator_bore > 0.0 &&
       pp.r_evaporator_bore < pp.r_evaporator_outer,
     "Require 0 < r_evaporator_bore < r_evaporator_outer");
+
+  require(
+    pp.x_fuel_line_lo >= pp.x_evaporator_lo &&
+      pp.x_fuel_line_lo < pp.L,
+    "Require x_evaporator_lo <= x_fuel_line_lo < L");
+  require(
+    pp.r_fuel_line_inner > 0.0 &&
+      pp.r_fuel_line_inner < pp.r_fuel_line_outer &&
+      pp.r_fuel_line_outer < pp.r_evaporator_bore,
+    "Require 0 < r_fuel_line_inner < r_fuel_line_outer < r_evaporator_bore");
 
   for (int n = 0; n < ProbParmDevice::num_liner_hole_rows; ++n) {
     require(
@@ -182,6 +192,11 @@ parse_params(ProbParmDevice* prob_parm_device)
     prob_parm_device->z_evaporator_center);
   pp.query("r_evaporator_outer", prob_parm_device->r_evaporator_outer);
   pp.query("r_evaporator_bore", prob_parm_device->r_evaporator_bore);
+
+  // Fuel line.
+  pp.query("x_fuel_line_lo", prob_parm_device->x_fuel_line_lo);
+  pp.query("r_fuel_line_outer", prob_parm_device->r_fuel_line_outer);
+  pp.query("r_fuel_line_inner", prob_parm_device->r_fuel_line_inner);
 
   auto query_real_array =
     [&](const char* name, amrex::Real* values) {
@@ -450,6 +465,28 @@ EBAnnularSector::build(
     pp->y_evaporator_center,
     pp->z_evaporator_center);
 
+  auto evaporator_bore_cutout =
+    amrex::EB2::makeComplement(evaporator_bore);
+
+  auto evaporator_shell =
+    amrex::EB2::makeIntersection(
+      evaporator_outer,
+      evaporator_bore_cutout);
+
+  auto fuel_line_outer = make_capped_cylinder(
+    pp->x_fuel_line_lo,
+    L,
+    pp->r_fuel_line_outer,
+    pp->y_evaporator_center,
+    pp->z_evaporator_center);
+
+  auto fuel_line_bore = make_capped_cylinder(
+    pp->x_fuel_line_lo,
+    L,
+    pp->r_fuel_line_inner,
+    pp->y_evaporator_center,
+    pp->z_evaporator_center);
+
   const amrex::Real outer_liner_mid =
     0.5 * (pp->r_outer_liner_lo + pp->r_outer_liner_hi);
   const amrex::Real outer_liner_thickness =
@@ -625,6 +662,14 @@ EBAnnularSector::build(
     pp->r_inner_wall_two_top,
     pp->r_inner_liner_lo);
 
+  // Close the upper x-high face. The fuel-line bore cutout below is applied
+  // later, leaving a small fuel-inlet port behind the evaporator.
+  auto upper_fuel_inlet_wall = make_annular_block(
+    pp->x_outlet_wall_lo,
+    L,
+    pp->secondary_inlet_split_r,
+    pp->r_upper);
+
   auto combustor_walls =
     amrex::EB2::makeUnion(
       outer_liner,
@@ -633,10 +678,12 @@ EBAnnularSector::build(
       outer_exit_turn,
       upper_exit_lip,
       inlet_vane,
-      evaporator_outer,
+      evaporator_shell,
+      fuel_line_outer,
       inner_wall_one,
       inner_wall_two,
-      lower_outlet_wall);
+      lower_outlet_wall,
+      upper_fuel_inlet_wall);
 
   auto solid_before_cutouts =
     amrex::EB2::makeUnion(
@@ -645,8 +692,8 @@ EBAnnularSector::build(
       inlet_wall_block,
       combustor_walls);
 
-  auto evaporator_bore_cutout =
-    amrex::EB2::makeComplement(evaporator_bore);
+  auto fuel_line_bore_cutout =
+    amrex::EB2::makeComplement(fuel_line_bore);
 
   auto liner_hole_cutouts =
     amrex::EB2::makeComplement(liner_holes);
@@ -654,7 +701,7 @@ EBAnnularSector::build(
   auto cut_solid_region =
     amrex::EB2::makeIntersection(
       solid_before_cutouts,
-      evaporator_bore_cutout,
+      fuel_line_bore_cutout,
       liner_hole_cutouts);
 
   // Apply the sector wall after subtracting holes so hole cutouts cannot

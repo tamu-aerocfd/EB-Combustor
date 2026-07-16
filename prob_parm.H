@@ -69,11 +69,19 @@ struct ProbParmDevice
   // ---------------------------------------------------------------------------
 
   amrex::Real x_evaporator_lo = 2.0;
-  amrex::Real x_evaporator_bore_hi = 9.0;
+  amrex::Real x_evaporator_bore_hi = 8.5;
   amrex::Real y_evaporator_center = 4.6;
   amrex::Real z_evaporator_center = 0.0;
   amrex::Real r_evaporator_outer = 0.4;
   amrex::Real r_evaporator_bore = 0.3;
+
+  // ---------------------------------------------------------------------------
+  // Fuel line
+  // ---------------------------------------------------------------------------
+
+  amrex::Real x_fuel_line_lo = 2.0;
+  amrex::Real r_fuel_line_outer = 0.20;
+  amrex::Real r_fuel_line_inner = 0.12;
 
   // ---------------------------------------------------------------------------
   // Liner holes
