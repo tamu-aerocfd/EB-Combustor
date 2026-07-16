@@ -45,9 +45,8 @@ validate_geometry(const ProbParmDevice& pp)
 
   require(
     0.0 <= pp.x_evaporator_lo &&
-      pp.x_evaporator_lo < pp.x_evaporator_outer_hi &&
-      pp.x_evaporator_outer_hi <= pp.x_outer_turn_hi &&
-      pp.x_evaporator_outer_hi <= pp.x_evaporator_bore_hi &&
+      pp.x_evaporator_lo < pp.x_outer_turn_hi &&
+      pp.x_outer_turn_hi <= pp.x_evaporator_bore_hi &&
       pp.x_evaporator_bore_hi <= pp.L,
     "Require ordered evaporator x extents inside the domain");
   require(
@@ -172,9 +171,6 @@ parse_params(ProbParmDevice* prob_parm_device)
 
   // Evaporator.
   pp.query("x_evaporator_lo", prob_parm_device->x_evaporator_lo);
-  pp.query(
-    "x_evaporator_outer_hi",
-    prob_parm_device->x_evaporator_outer_hi);
   pp.query("x_evaporator_bore_hi", prob_parm_device->x_evaporator_bore_hi);
   pp.query(
     "y_evaporator_center",
@@ -397,7 +393,7 @@ EBAnnularSector::build(
 
   auto evaporator_outer = make_capped_cylinder(
     pp->x_evaporator_lo,
-    pp->x_evaporator_outer_hi,
+    pp->x_outer_turn_hi,
     pp->r_evaporator_outer,
     pp->y_evaporator_center,
     pp->z_evaporator_center);

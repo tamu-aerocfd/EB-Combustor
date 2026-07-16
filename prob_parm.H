@@ -69,7 +69,6 @@ struct ProbParmDevice
   // ---------------------------------------------------------------------------
 
   amrex::Real x_evaporator_lo = 2.0;
-  amrex::Real x_evaporator_outer_hi = 8.50;
   amrex::Real x_evaporator_bore_hi = 9.0;
   amrex::Real y_evaporator_center = 4.6;
   amrex::Real z_evaporator_center = 0.0;
