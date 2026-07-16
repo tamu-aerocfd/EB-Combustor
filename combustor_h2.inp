@@ -1,6 +1,6 @@
 # ------------------ INPUTS TO MAIN PROGRAM -------------------
 max_step = 10000
-stop_time = 1.0e-3
+stop_time = 1.0e-2
 
 # GEOMETRY
 geometry.is_periodic = 0 0 0
@@ -108,7 +108,7 @@ prob.r_evaporator_outer = 0.4
 prob.r_evaporator_bore = 0.375
 
 # FUEL LINE
-prob.x_fuel_line_lo = 2.0
+prob.x_fuel_line_lo = 7.0
 prob.r_fuel_line_outer = 0.15
 prob.r_fuel_line_inner = 0.125
 
