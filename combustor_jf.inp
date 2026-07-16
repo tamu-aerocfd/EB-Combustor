@@ -50,12 +50,12 @@ amr.max_grid_size = 64
 
 # CHECKPOINTS
 amr.checkpoint_files_output = 1
-amr.check_file = chk
+amr.check_file = chk_jf
 amr.check_int = 500
 
 # PLOTFILES
 amr.plot_files_output = 1
-amr.plot_file = plt
+amr.plot_file = plt_jf
 amr.plot_int = 100
 amr.derive_plot_vars = ALL
 pelec.plot_massfrac = 1
@@ -69,9 +69,9 @@ prob.T_inlet = 300.0
 prob.p_inlet = 1.013e6
 prob.p_exit = 1.0e6
 
-# SECONDARY FUEL INLET PARAMETERS
+# SECONDARY FUEL INLET PARAMETERS (Jet-A-like vapor)
 prob.M_fuel_inlet = 0.10
-prob.T_fuel_inlet = 300.0
+prob.T_fuel_inlet = 450.0
 prob.p_fuel_inlet = 1.013e6
 prob.fuel_species_id = -1
 prob.mass_frac_fuel = 1.0

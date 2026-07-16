@@ -30,6 +30,52 @@
 
 void parse_params(ProbParmDevice* prob_parm_device);
 
+
+AMREX_GPU_HOST_DEVICE
+AMREX_FORCE_INLINE
+int
+pc_fuel_species_id(const ProbParmDevice& prob_parm)
+{
+#if NUM_SPECIES == 1
+  return 0;
+#else
+  return (prob_parm.fuel_species_id >= 0) ? prob_parm.fuel_species_id : H2_ID;
+#endif
+}
+
+AMREX_GPU_HOST_DEVICE
+AMREX_FORCE_INLINE
+void
+pc_air_massfrac(
+  amrex::Real massfrac[NUM_SPECIES],
+  const ProbParmDevice& prob_parm)
+{
+  for (int n = 0; n < NUM_SPECIES; n++) {
+    massfrac[n] = 0.0;
+  }
+
+#if NUM_SPECIES == 1
+  massfrac[0] = 1.0;
+#else
+  amrex::Real molefrac[NUM_SPECIES] = {0.0};
+
+  const amrex::Real air_mole_frac_sum =
+    prob_parm.air_mole_frac_o2 + prob_parm.air_mole_frac_n2;
+
+  molefrac[O2_ID] =
+    prob_parm.air_mole_frac_o2 / air_mole_frac_sum;
+  molefrac[N2_ID] =
+    prob_parm.air_mole_frac_n2 / air_mole_frac_sum;
+
+  auto eos =
+    pele::physics::PhysicsType::eos();
+
+  eos.X2Y(
+    molefrac,
+    massfrac);
+#endif
+}
+
 class EBAnnularSector
   : public pele::pelec::Geometry::Register<EBAnnularSector>
 {
@@ -62,8 +108,10 @@ pc_initdata(
   const amrex::Real p = prob_parm.p0;
   const amrex::Real T = prob_parm.T0;
 
-  // Species zero initially has mass fraction one.
-  amrex::Real massfrac[NUM_SPECIES] = {1.0};
+  amrex::Real massfrac[NUM_SPECIES];
+  pc_air_massfrac(
+    massfrac,
+    prob_parm);
 
   amrex::Real rho;
   amrex::Real eint;
@@ -125,11 +173,9 @@ bcnormal(
       pele::physics::PhysicsType::eos();
 
     amrex::Real massfrac[NUM_SPECIES];
-
-    for (int n = 0; n < NUM_SPECIES; n++) {
-      massfrac[n] =
-        s_int[UFS + n] / s_int[URHO];
-    }
+    pc_air_massfrac(
+      massfrac,
+      prob_parm);
 
     amrex::Real p_in = 0.0;
 
@@ -253,7 +299,75 @@ bcnormal(
         s_int[UFS + n] / rho;
     }
 
-    if (prob_parm.outlet_type == 0) {
+    const amrex::Real r =
+      std::sqrt(x[1] * x[1] + x[2] * x[2]);
+
+    const bool is_secondary_fuel_inlet =
+      r > prob_parm.secondary_inlet_split_r;
+
+    if (is_secondary_fuel_inlet) {
+
+      const int fuel_species_id =
+        pc_fuel_species_id(prob_parm);
+
+      const amrex::Real fuel_mass_fraction =
+        (prob_parm.mass_frac_fuel < 0.0) ?
+          0.0 :
+          ((prob_parm.mass_frac_fuel > 1.0) ?
+             1.0 :
+             prob_parm.mass_frac_fuel);
+
+      amrex::Real nonfuel_mass_fraction = 0.0;
+
+      for (int n = 0; n < NUM_SPECIES; n++) {
+        if (n != fuel_species_id) {
+          nonfuel_mass_fraction += massfrac[n];
+        }
+      }
+
+      for (int n = 0; n < NUM_SPECIES; n++) {
+        if (n == fuel_species_id) {
+          massfrac[n] = fuel_mass_fraction;
+        } else if (nonfuel_mass_fraction > 0.0) {
+          massfrac[n] *=
+            (1.0 - fuel_mass_fraction) / nonfuel_mass_fraction;
+        } else {
+          massfrac[n] = 0.0;
+        }
+      }
+
+      auto eos =
+        pele::physics::PhysicsType::eos();
+
+      const amrex::Real p_in =
+        prob_parm.p_fuel_inlet;
+
+      const amrex::Real T_in =
+        prob_parm.T_fuel_inlet;
+
+      eos.PYT2RE(
+        p_in,
+        massfrac,
+        T_in,
+        rho,
+        eint);
+
+      amrex::Real Cs_in;
+
+      eos.RTY2Cs(
+        rho,
+        T_in,
+        massfrac,
+        Cs_in);
+
+      u =
+        -prob_parm.M_fuel_inlet * Cs_in;
+
+      v = 0.0;
+      w = 0.0;
+      T = T_in;
+
+    } else if (prob_parm.outlet_type == 0) {
 
       // First-order extrapolation.
 
