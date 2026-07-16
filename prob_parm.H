@@ -25,8 +25,15 @@ struct ProbParmDevice
   amrex::Real M_fuel_inlet = 0.1;
   amrex::Real T_fuel_inlet = 300.0;
   amrex::Real p_fuel_inlet = 1.013e6;
-  int fuel_species_id = 0;
+  // Set fuel_species_id < 0 to use the mechanism default: species 0 for
+  // single-species mechanisms, or H2_ID when a detailed mechanism is compiled.
+  int fuel_species_id = -1;
   amrex::Real mass_frac_fuel = 1.0;
+
+  // Air inlet/initial composition. Single-species mechanisms ignore these and
+  // use species 0 with mass fraction 1. Detailed mechanisms use O2_ID/N2_ID.
+  amrex::Real air_mole_frac_o2 = 0.21;
+  amrex::Real air_mole_frac_n2 = 0.79;
 
   // Initial domain state.
   amrex::Real p0 = 1.013e6; // [erg cm^-3]

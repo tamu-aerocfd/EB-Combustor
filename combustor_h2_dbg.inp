@@ -71,8 +71,10 @@ prob.p_exit = 1.0e6
 prob.M_fuel_inlet = 0.20
 prob.T_fuel_inlet = 300.0
 prob.p_fuel_inlet = 1.013e6
-prob.fuel_species_id = 0
+prob.fuel_species_id = -1
 prob.mass_frac_fuel = 1.0
+prob.air_mole_frac_o2 = 0.21
+prob.air_mole_frac_n2 = 0.79
 
 prob.inlet_type = 0
 prob.outlet_type = 1

@@ -32,11 +32,16 @@ validate_geometry(const ProbParmDevice& pp)
     pp.inlet_lower_r > pp.r_lower && pp.inlet_lower_r < pp.r_upper,
     "prob.inlet_lower_r must lie inside the annulus");
   require(
-    pp.fuel_species_id >= 0 && pp.fuel_species_id < NUM_SPECIES,
-    "prob.fuel_species_id must name a valid species");
+    pp.fuel_species_id >= -1 && pp.fuel_species_id < NUM_SPECIES,
+    "prob.fuel_species_id must be -1 for mechanism default or name a valid "
+    "species");
   require(
     pp.mass_frac_fuel >= 0.0 && pp.mass_frac_fuel <= 1.0,
     "Require 0 <= prob.mass_frac_fuel <= 1");
+  require(
+    pp.air_mole_frac_o2 >= 0.0 && pp.air_mole_frac_n2 >= 0.0 &&
+      pp.air_mole_frac_o2 + pp.air_mole_frac_n2 > 0.0,
+    "Air O2/N2 mole fractions must be nonnegative with positive sum");
   require(
     pp.secondary_inlet_split_r > pp.r_lower &&
       pp.secondary_inlet_split_r < pp.r_upper,
@@ -179,6 +184,8 @@ parse_params(ProbParmDevice* prob_parm_device)
   pp.query("p_fuel_inlet", prob_parm_device->p_fuel_inlet);
   pp.query("fuel_species_id", prob_parm_device->fuel_species_id);
   pp.query("mass_frac_fuel", prob_parm_device->mass_frac_fuel);
+  pp.query("air_mole_frac_o2", prob_parm_device->air_mole_frac_o2);
+  pp.query("air_mole_frac_n2", prob_parm_device->air_mole_frac_n2);
   pp.query("p0", prob_parm_device->p0);
   pp.query("T0", prob_parm_device->T0);
   pp.query("inlet_type", prob_parm_device->inlet_type);
