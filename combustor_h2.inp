@@ -55,7 +55,7 @@ amr.check_int = 500
 
 # PLOTFILES
 amr.plot_files_output = 1
-amr.plot_file = plt_h2
+amr.plot_file = plt
 amr.plot_int = 100
 amr.derive_plot_vars = ALL
 pelec.plot_massfrac = 1
@@ -96,7 +96,7 @@ prob.theta_deg = 15.0
 # INLET VANE
 prob.x_inlet_vane_lo = 0.0
 prob.x_inlet_vane_hi = 0.5
-prob.r_inlet_vane_lo = 5.3
+prob.r_inlet_vane_lo = 5.375
 prob.r_inlet_vane_hi = 5.4
 
 # EVAPORATOR
@@ -105,12 +105,12 @@ prob.x_evaporator_bore_hi = 8.5
 prob.y_evaporator_center = 4.6
 prob.z_evaporator_center = 0.0
 prob.r_evaporator_outer = 0.4
-prob.r_evaporator_bore = 0.3
+prob.r_evaporator_bore = 0.375
 
 # FUEL LINE
 prob.x_fuel_line_lo = 2.0
-prob.r_fuel_line_outer = 0.20
-prob.r_fuel_line_inner = 0.12
+prob.r_fuel_line_outer = 0.15
+prob.r_fuel_line_inner = 0.125
 
 # Spark ignition for restart runs. x_spark and r_spark define the spark center
 # in meridional (x, cylindrical-r) space; spark_radius is the heated radius.
@@ -122,7 +122,7 @@ prob.T_spark = 2000.0
 
 # LINER HOLE ROWS
 prob.liner_hole_x = 2.3 3.05 3.9 4.7 5.6 6.5 7.5
-prob.liner_hole_radius = 0.1 0.15 0.2 0.2 0.2 0.25 0.1
+prob.liner_hole_radius = 0.1 0.15 0.2 0.2 0.2 0.225 0.1
 prob.liner_hole_spacing_deg = 6.0 30.0 30.0 30.0 30.0 10.0 15.0
 prob.liner_hole_theta_start_deg = 0.0 15.0 15.0 15.0 15.0 0.0 7.5
 prob.liner_hole_omit_every_n = 0 0 0 0 0 3 0

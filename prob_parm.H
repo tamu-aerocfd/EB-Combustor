@@ -70,7 +70,7 @@ struct ProbParmDevice
 
   amrex::Real x_inlet_vane_lo = 0.0;
   amrex::Real x_inlet_vane_hi = 0.5;
-  amrex::Real r_inlet_vane_lo = 5.3;
+  amrex::Real r_inlet_vane_lo = 5.375;
   amrex::Real r_inlet_vane_hi = 5.4;
 
   // ---------------------------------------------------------------------------
@@ -82,15 +82,15 @@ struct ProbParmDevice
   amrex::Real y_evaporator_center = 4.6;
   amrex::Real z_evaporator_center = 0.0;
   amrex::Real r_evaporator_outer = 0.4;
-  amrex::Real r_evaporator_bore = 0.3;
+  amrex::Real r_evaporator_bore = 0.375;
 
   // ---------------------------------------------------------------------------
   // Fuel line
   // ---------------------------------------------------------------------------
 
-  amrex::Real x_fuel_line_lo = 2.0;
-  amrex::Real r_fuel_line_outer = 0.20;
-  amrex::Real r_fuel_line_inner = 0.12;
+  amrex::Real x_fuel_line_lo = 7.0;
+  amrex::Real r_fuel_line_outer = 0.15;
+  amrex::Real r_fuel_line_inner = 0.125;
 
   // ---------------------------------------------------------------------------
   // Spark ignition
@@ -113,7 +113,7 @@ struct ProbParmDevice
   amrex::Real liner_hole_radius[num_liner_hole_rows] =
     {0.1, 0.15, 0.2, 0.2, 0.2, 0.25, 0.1};
   amrex::Real liner_hole_spacing_deg[num_liner_hole_rows] =
-    {6.0, 30.0, 30.0, 30.0, 30.0, 10.0, 15.0};
+    {6.0, 30.0, 30.0, 30.0, 30.0, 9.0, 15.0};
   amrex::Real liner_hole_theta_start_deg[num_liner_hole_rows] =
     {0.0, 15.0, 15.0, 15.0, 15.0, 0.0, 7.5};
   int liner_hole_omit_every_n[num_liner_hole_rows] =
@@ -124,32 +124,32 @@ struct ProbParmDevice
   // ---------------------------------------------------------------------------
 
   // Upstream dome axial interval.
-  amrex::Real x_dome_lo = 1.40;
-  amrex::Real x_dome_hi = 1.60;
+  amrex::Real x_dome_lo = 1.475;
+  amrex::Real x_dome_hi = 1.50;
 
   // Inner liner:
   //
   //   r_inner_liner_lo = inner-plenum side
   //   r_inner_liner_hi = combustion-chamber side
   //
-  amrex::Real r_inner_liner_lo = 2.40;
-  amrex::Real r_inner_liner_hi = 2.60;
+  amrex::Real r_inner_liner_lo = 2.475;
+  amrex::Real r_inner_liner_hi = 2.50;
 
   // Outer liner:
   //
   //   r_outer_liner_lo = combustion-chamber side
   //   r_outer_liner_hi = outer-plenum side
   //
-  amrex::Real r_outer_liner_lo = 4.20;
-  amrex::Real r_outer_liner_hi = 4.40;
+  amrex::Real r_outer_liner_lo = 5.375;
+  amrex::Real r_outer_liner_hi = 5.40;
 
   // Downstream radial turn of the outer liner.
-  amrex::Real x_outer_turn_lo = 8.25;
+  amrex::Real x_outer_turn_lo = 8.475;
   amrex::Real x_outer_turn_hi = 8.50;
 
   // Upper outlet lip radial interval.
   amrex::Real r_upper_exit_lo = 4.00;
-  amrex::Real r_upper_exit_hi = 4.20;
+  amrex::Real r_upper_exit_hi = 4.025;
 
   // ---------------------------------------------------------------------------
   // Inner casing walls
@@ -168,7 +168,7 @@ struct ProbParmDevice
   // The lower closure joins inner wall two to the inner liner.
   // The upper side remains open at x-high for the secondary fuel inlet.
   //
-  amrex::Real x_outlet_wall_lo = 8.70;
+  amrex::Real x_outlet_wall_lo = 8.90;
 
   // ---------------------------------------------------------------------------
   // Boundary and sponge options
