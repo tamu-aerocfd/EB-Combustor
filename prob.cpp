@@ -718,6 +718,25 @@ EBAnnularSector::build(
       cut_solid_region,
       sector_solid);
 
+  auto fuel_line_bore_cutout =
+    amrex::EB2::makeComplement(fuel_line_bore);
+
+  auto liner_hole_cutouts =
+    amrex::EB2::makeComplement(liner_holes);
+
+  auto cut_solid_region =
+    amrex::EB2::makeIntersection(
+      solid_before_cutouts,
+      fuel_line_bore_cutout,
+      liner_hole_cutouts);
+
+  // Apply the sector wall after subtracting holes so hole cutouts cannot
+  // perforate the symmetry-sector boundary.
+  auto solid_region =
+    amrex::EB2::makeUnion(
+      cut_solid_region,
+      sector_solid);
+
   auto gshop =
     amrex::EB2::makeShop(solid_region);
 
