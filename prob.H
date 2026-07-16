@@ -253,7 +253,75 @@ bcnormal(
         s_int[UFS + n] / rho;
     }
 
-    if (prob_parm.outlet_type == 0) {
+    const amrex::Real r =
+      std::sqrt(x[1] * x[1] + x[2] * x[2]);
+
+    const bool is_secondary_fuel_inlet =
+      r > prob_parm.secondary_inlet_split_r;
+
+    if (is_secondary_fuel_inlet) {
+
+      const int fuel_species_id =
+        prob_parm.fuel_species_id;
+
+      const amrex::Real fuel_mass_fraction =
+        (prob_parm.mass_frac_fuel < 0.0) ?
+          0.0 :
+          ((prob_parm.mass_frac_fuel > 1.0) ?
+             1.0 :
+             prob_parm.mass_frac_fuel);
+
+      amrex::Real nonfuel_mass_fraction = 0.0;
+
+      for (int n = 0; n < NUM_SPECIES; n++) {
+        if (n != fuel_species_id) {
+          nonfuel_mass_fraction += massfrac[n];
+        }
+      }
+
+      for (int n = 0; n < NUM_SPECIES; n++) {
+        if (n == fuel_species_id) {
+          massfrac[n] = fuel_mass_fraction;
+        } else if (nonfuel_mass_fraction > 0.0) {
+          massfrac[n] *=
+            (1.0 - fuel_mass_fraction) / nonfuel_mass_fraction;
+        } else {
+          massfrac[n] = 0.0;
+        }
+      }
+
+      auto eos =
+        pele::physics::PhysicsType::eos();
+
+      const amrex::Real p_in =
+        prob_parm.p_fuel_inlet;
+
+      const amrex::Real T_in =
+        prob_parm.T_fuel_inlet;
+
+      eos.PYT2RE(
+        p_in,
+        massfrac,
+        T_in,
+        rho,
+        eint);
+
+      amrex::Real Cs_in;
+
+      eos.RTY2Cs(
+        rho,
+        T_in,
+        massfrac,
+        Cs_in);
+
+      u =
+        -prob_parm.M_fuel_inlet * Cs_in;
+
+      v = 0.0;
+      w = 0.0;
+      T = T_in;
+
+    } else if (prob_parm.outlet_type == 0) {
 
       // First-order extrapolation.
 
