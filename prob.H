@@ -261,6 +261,35 @@ bcnormal(
 
     if (is_secondary_fuel_inlet) {
 
+      const int fuel_species_id =
+        prob_parm.fuel_species_id;
+
+      const amrex::Real fuel_mass_fraction =
+        (prob_parm.mass_frac_fuel < 0.0) ?
+          0.0 :
+          ((prob_parm.mass_frac_fuel > 1.0) ?
+             1.0 :
+             prob_parm.mass_frac_fuel);
+
+      amrex::Real nonfuel_mass_fraction = 0.0;
+
+      for (int n = 0; n < NUM_SPECIES; n++) {
+        if (n != fuel_species_id) {
+          nonfuel_mass_fraction += massfrac[n];
+        }
+      }
+
+      for (int n = 0; n < NUM_SPECIES; n++) {
+        if (n == fuel_species_id) {
+          massfrac[n] = fuel_mass_fraction;
+        } else if (nonfuel_mass_fraction > 0.0) {
+          massfrac[n] *=
+            (1.0 - fuel_mass_fraction) / nonfuel_mass_fraction;
+        } else {
+          massfrac[n] = 0.0;
+        }
+      }
+
       auto eos =
         pele::physics::PhysicsType::eos();
 

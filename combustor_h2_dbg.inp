@@ -71,6 +71,8 @@ prob.p_exit = 1.0e6
 prob.M_fuel_inlet = 0.20
 prob.T_fuel_inlet = 300.0
 prob.p_fuel_inlet = 1.013e6
+prob.fuel_species_id = 0
+prob.mass_frac_fuel = 1.0
 
 prob.inlet_type = 0
 prob.outlet_type = 1
@@ -134,6 +136,14 @@ prob.r_evaporator_bore = 0.3
 prob.x_fuel_line_lo = 2.0
 prob.r_fuel_line_outer = 0.20
 prob.r_fuel_line_inner = 0.12
+
+# Spark ignition for restart runs. x_spark and r_spark define the spark center
+# in meridional (x, cylindrical-r) space; spark_radius is the heated radius.
+prob.do_spark = 0
+prob.x_spark = 4.5
+prob.r_spark = 3.5
+prob.spark_radius = 0.1
+prob.T_spark = 2000.0
 
 # LINER HOLE ROWS
 prob.liner_hole_x = 2.3 3.05 3.9 4.7 5.6 6.5 7.5

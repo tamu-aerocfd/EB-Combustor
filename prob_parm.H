@@ -25,6 +25,8 @@ struct ProbParmDevice
   amrex::Real M_fuel_inlet = 0.1;
   amrex::Real T_fuel_inlet = 300.0;
   amrex::Real p_fuel_inlet = 1.013e6;
+  int fuel_species_id = 0;
+  amrex::Real mass_frac_fuel = 1.0;
 
   // Initial domain state.
   amrex::Real p0 = 1.013e6; // [erg cm^-3]
@@ -79,9 +81,19 @@ struct ProbParmDevice
   // Fuel line
   // ---------------------------------------------------------------------------
 
-  amrex::Real x_fuel_line_lo = 7.0;
+  amrex::Real x_fuel_line_lo = 2.0;
   amrex::Real r_fuel_line_outer = 0.20;
   amrex::Real r_fuel_line_inner = 0.15;
+
+  // ---------------------------------------------------------------------------
+  // Spark ignition
+  // ---------------------------------------------------------------------------
+
+  bool do_spark = false;
+  amrex::Real x_spark = 4.5;
+  amrex::Real r_spark = 3.5;
+  amrex::Real spark_radius = 0.1;
+  amrex::Real T_spark = 2000.0;
 
   // ---------------------------------------------------------------------------
   // Liner holes

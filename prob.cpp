@@ -1,5 +1,7 @@
 #include "prob.H"
 
+#include <AMReX_MFIter.H>
+#include <AMReX_ParallelFor.H>
 #include <AMReX_Vector.H>
 
 #include <cmath>
@@ -29,6 +31,12 @@ validate_geometry(const ProbParmDevice& pp)
   require(
     pp.inlet_lower_r > pp.r_lower && pp.inlet_lower_r < pp.r_upper,
     "prob.inlet_lower_r must lie inside the annulus");
+  require(
+    pp.fuel_species_id >= 0 && pp.fuel_species_id < NUM_SPECIES,
+    "prob.fuel_species_id must name a valid species");
+  require(
+    pp.mass_frac_fuel >= 0.0 && pp.mass_frac_fuel <= 1.0,
+    "Require 0 <= prob.mass_frac_fuel <= 1");
   require(
     pp.secondary_inlet_split_r > pp.r_lower &&
       pp.secondary_inlet_split_r < pp.r_upper,
@@ -65,6 +73,21 @@ validate_geometry(const ProbParmDevice& pp)
       pp.r_fuel_line_inner < pp.r_fuel_line_outer &&
       pp.r_fuel_line_outer < pp.r_evaporator_bore,
     "Require 0 < r_fuel_line_inner < r_fuel_line_outer < r_evaporator_bore");
+
+  if (pp.do_spark) {
+    require(
+      pp.x_spark > 0.0 && pp.x_spark < pp.L,
+      "prob.x_spark must lie inside the domain when prob.do_spark = true");
+    require(
+      pp.r_spark > pp.r_lower && pp.r_spark < pp.r_upper,
+      "prob.r_spark must lie inside the annulus when prob.do_spark = true");
+    require(
+      pp.spark_radius > 0.0,
+      "prob.spark_radius must be positive when prob.do_spark = true");
+    require(
+      pp.T_spark > 0.0,
+      "prob.T_spark must be positive when prob.do_spark = true");
+  }
 
   for (int n = 0; n < ProbParmDevice::num_liner_hole_rows; ++n) {
     require(
@@ -154,6 +177,8 @@ parse_params(ProbParmDevice* prob_parm_device)
   pp.query("M_fuel_inlet", prob_parm_device->M_fuel_inlet);
   pp.query("T_fuel_inlet", prob_parm_device->T_fuel_inlet);
   pp.query("p_fuel_inlet", prob_parm_device->p_fuel_inlet);
+  pp.query("fuel_species_id", prob_parm_device->fuel_species_id);
+  pp.query("mass_frac_fuel", prob_parm_device->mass_frac_fuel);
   pp.query("p0", prob_parm_device->p0);
   pp.query("T0", prob_parm_device->T0);
   pp.query("inlet_type", prob_parm_device->inlet_type);
@@ -197,6 +222,14 @@ parse_params(ProbParmDevice* prob_parm_device)
   pp.query("x_fuel_line_lo", prob_parm_device->x_fuel_line_lo);
   pp.query("r_fuel_line_outer", prob_parm_device->r_fuel_line_outer);
   pp.query("r_fuel_line_inner", prob_parm_device->r_fuel_line_inner);
+
+  // Spark ignition. The spark center is specified in (x, cylindrical-r), and
+  // spark_radius controls the meridional radius of the heated restart region.
+  pp.query("do_spark", prob_parm_device->do_spark);
+  pp.query("x_spark", prob_parm_device->x_spark);
+  pp.query("r_spark", prob_parm_device->r_spark);
+  pp.query("spark_radius", prob_parm_device->spark_radius);
+  pp.query("T_spark", prob_parm_device->T_spark);
 
   auto query_real_array =
     [&](const char* name, amrex::Real* values) {
@@ -296,6 +329,106 @@ PeleC::problem_post_init()
 void
 PeleC::problem_post_restart()
 {
+  parse_params(PeleC::h_prob_parm_device);
+
+  const ProbParmDevice pp =
+    *PeleC::h_prob_parm_device;
+
+  if (!pp.do_spark) {
+    return;
+  }
+
+  auto& state =
+    get_new_data(State_Type);
+
+  const amrex::GeometryData geomdata =
+    Geom().data();
+
+  const amrex::Real x_spark =
+    pp.x_spark;
+  const amrex::Real r_spark =
+    pp.r_spark;
+  const amrex::Real spark_radius =
+    pp.spark_radius;
+  const amrex::Real T_spark =
+    pp.T_spark;
+
+  for (amrex::MFIter mfi(state, amrex::TilingIfNotGPU()); mfi.isValid();
+       ++mfi) {
+    const amrex::Box& bx =
+      mfi.tilebox();
+
+    auto const state_arr =
+      state.array(mfi);
+
+    amrex::ParallelFor(
+      bx,
+      [=] AMREX_GPU_DEVICE(const int i, const int j, const int k) noexcept {
+        const amrex::Real* prob_lo =
+          geomdata.ProbLo();
+        const amrex::Real* dx =
+          geomdata.CellSize();
+
+        const amrex::Real x =
+          prob_lo[0] + (static_cast<amrex::Real>(i) + 0.5) * dx[0];
+        const amrex::Real y =
+          prob_lo[1] + (static_cast<amrex::Real>(j) + 0.5) * dx[1];
+        const amrex::Real z =
+          prob_lo[2] + (static_cast<amrex::Real>(k) + 0.5) * dx[2];
+
+        const amrex::Real r =
+          std::sqrt(y * y + z * z);
+
+        const amrex::Real dx_spark =
+          x - x_spark;
+        const amrex::Real dr_spark =
+          r - r_spark;
+
+        if (
+          dx_spark * dx_spark + dr_spark * dr_spark <=
+          spark_radius * spark_radius) {
+
+          const amrex::Real rho =
+            state_arr(i, j, k, URHO);
+
+          amrex::Real massfrac[NUM_SPECIES];
+
+          for (int n = 0; n < NUM_SPECIES; n++) {
+            massfrac[n] =
+              state_arr(i, j, k, UFS + n) / rho;
+          }
+
+          auto eos =
+            pele::physics::PhysicsType::eos();
+
+          amrex::Real eint = 0.0;
+
+          eos.RTY2E(
+            rho,
+            T_spark,
+            massfrac,
+            eint);
+
+          const amrex::Real u =
+            state_arr(i, j, k, UMX) / rho;
+          const amrex::Real v =
+            state_arr(i, j, k, UMY) / rho;
+          const amrex::Real w =
+            state_arr(i, j, k, UMZ) / rho;
+
+          state_arr(i, j, k, UEINT) =
+            rho * eint;
+          state_arr(i, j, k, UEDEN) =
+            rho *
+            (
+              eint +
+              0.5 * (u * u + v * v + w * w)
+            );
+          state_arr(i, j, k, UTEMP) =
+            T_spark;
+        }
+      });
+  }
 }
 
 void
