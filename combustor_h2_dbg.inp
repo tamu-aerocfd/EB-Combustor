@@ -14,7 +14,7 @@ amr.n_cell = 192 136 48
 
 # BOUNDARY CONDITIONS
 pelec.lo_bc = "Hard"     "FOExtrap" "Symmetry"
-pelec.hi_bc = "FOExtrap" "FOExtrap" "FOExtrap"
+pelec.hi_bc = "Hard"     "FOExtrap" "FOExtrap"
 
 # PHYSICS
 pelec.do_hydro = 1

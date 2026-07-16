@@ -15,7 +15,7 @@ amr.n_cell = 384 272 96
 # BOUNDARY CONDITIONS
 # x-low inlet, x-high outlet, y/z extrap because EB defines walls
 pelec.lo_bc = "Hard"     "FOExtrap" "Symmetry"
-pelec.hi_bc = "FOExtrap" "FOExtrap" "FOExtrap"
+pelec.hi_bc = "Hard"     "FOExtrap" "FOExtrap"
 
 # PHYSICS
 pelec.do_hydro = 1
