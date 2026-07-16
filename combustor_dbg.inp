@@ -10,7 +10,8 @@ geometry.prob_lo = 0.0 0.0   0.0
 geometry.prob_hi = 9.0 6.375 2.25
 
 # Reduced isotropic mesh for geometry debugging
-amr.n_cell = 192 136 48
+#amr.n_cell = 192 136 48
+amr.n_cell = 384 272 96
 
 # BOUNDARY CONDITIONS
 pelec.lo_bc = "Hard"     "FOExtrap" "Symmetry"
@@ -42,7 +43,7 @@ amr.v = 2
 amr.data_log = datlog extremalog
 
 # BASE GRID ONLY
-amr.max_level = 0
+amr.max_level = 1
 amr.blocking_factor = 8
 amr.max_grid_size = 64
 
@@ -131,14 +132,14 @@ prob.r_evaporator_outer = 0.4
 prob.r_evaporator_bore = 0.3
 
 # FUEL LINE
-prob.x_fuel_line_lo = 2.0
+prob.x_fuel_line_lo = 7.0
 prob.r_fuel_line_outer = 0.20
-prob.r_fuel_line_inner = 0.12
+prob.r_fuel_line_inner = 0.15
 
 # LINER HOLE ROWS
 prob.liner_hole_x = 2.3 3.05 3.9 4.7 5.6 6.5 7.5
 prob.liner_hole_radius = 0.1 0.15 0.2 0.2 0.2 0.25 0.1
-prob.liner_hole_spacing_deg = 6.0 30.0 30.0 30.0 30.0 10.0 15.0
+prob.liner_hole_spacing_deg = 6.0 30.0 30.0 30.0 30.0 8.0 15.0
 prob.liner_hole_theta_start_deg = 0.0 15.0 15.0 15.0 15.0 0.0 7.5
 prob.liner_hole_omit_every_n = 0 0 0 0 0 3 0
 
