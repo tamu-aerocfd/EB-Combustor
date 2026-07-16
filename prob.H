@@ -43,6 +43,22 @@ pc_fuel_species_id(const ProbParmDevice& prob_parm)
 #endif
 }
 
+
+AMREX_GPU_HOST_DEVICE
+AMREX_FORCE_INLINE
+bool
+pc_is_fuel_inlet_port(
+  const amrex::Real x[AMREX_SPACEDIM],
+  const ProbParmDevice& prob_parm)
+{
+  const amrex::Real dy = x[1] - prob_parm.y_evaporator_center;
+  const amrex::Real dz = x[2] - prob_parm.z_evaporator_center;
+  const amrex::Real port_radius_sq =
+    prob_parm.r_fuel_line_inner * prob_parm.r_fuel_line_inner;
+
+  return dy * dy + dz * dz <= port_radius_sq;
+}
+
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 void
@@ -299,11 +315,8 @@ bcnormal(
         s_int[UFS + n] / rho;
     }
 
-    const amrex::Real r =
-      std::sqrt(x[1] * x[1] + x[2] * x[2]);
-
     const bool is_secondary_fuel_inlet =
-      r > prob_parm.secondary_inlet_split_r;
+      pc_is_fuel_inlet_port(x, prob_parm);
 
     if (is_secondary_fuel_inlet) {
 
