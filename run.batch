@@ -2,19 +2,19 @@
 #SBATCH --job-name=pelec_combustor
 #SBATCH --output=orun.%j
 #SBATCH --error=pelec_combustor.%j.err
-#SBATCH --nodes=4
+#SBATCH --nodes=10
 #SBATCH --ntasks-per-node=48
-#SBATCH --time=12:00:00
+#SBATCH --time=80:00:00
 #SBATCH --mem=360G
 #SBATCH --mail-user=jaystandridge@tamu.edu
 #SBATCH --mail-type=ALL           
 
 
 module purge
-module load GCC/11.3.0 OpenMPI/4.1.4
+module load GCC/12.2.0 OpenMPI/4.1.4
 
 export OMP_NUM_THREADS=1
 
 EXE=$(ls *.ex | head -n 1)
 
-mpirun -np 192 ./$EXE combustor.inp
+mpirun -np 480 ./$EXE combustor_h2.inp
