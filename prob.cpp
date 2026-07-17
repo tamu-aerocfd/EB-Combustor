@@ -184,6 +184,7 @@ parse_params(ProbParmDevice* prob_parm_device)
   pp.query("p_fuel_inlet", prob_parm_device->p_fuel_inlet);
   pp.query("fuel_species_id", prob_parm_device->fuel_species_id);
   pp.query("mass_frac_fuel", prob_parm_device->mass_frac_fuel);
+  pp.query("debug_fuel_port", prob_parm_device->debug_fuel_port);
   pp.query("air_mole_frac_o2", prob_parm_device->air_mole_frac_o2);
   pp.query("air_mole_frac_n2", prob_parm_device->air_mole_frac_n2);
   pp.query("p0", prob_parm_device->p0);

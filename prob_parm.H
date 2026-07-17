@@ -30,6 +30,10 @@ struct ProbParmDevice
   int fuel_species_id = -1;
   amrex::Real mass_frac_fuel = 1.0;
 
+  // Debug option to confirm when the x-high boundary handler reaches the
+  // fuel-line port.
+  bool debug_fuel_port = false;
+
   // Air inlet/initial composition. Single-species mechanisms ignore these and
   // use species 0 with mass fraction 1. Detailed mechanisms use O2_ID/N2_ID.
   amrex::Real air_mole_frac_o2 = 0.21;

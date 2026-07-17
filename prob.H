@@ -26,6 +26,7 @@
 #include "Geometry.H"
 
 #include <cmath>
+#include <cstdio>
 #include <string>
 
 void parse_params(ProbParmDevice* prob_parm_device);
@@ -41,6 +42,44 @@ pc_fuel_species_id(const ProbParmDevice& prob_parm)
 #else
   return (prob_parm.fuel_species_id >= 0) ? prob_parm.fuel_species_id : H2_ID;
 #endif
+}
+
+
+AMREX_GPU_HOST_DEVICE
+AMREX_FORCE_INLINE
+bool
+pc_is_fuel_line_cross_section(
+  const amrex::Real x[AMREX_SPACEDIM],
+  const ProbParmDevice& prob_parm)
+{
+  const amrex::Real dy = x[1] - prob_parm.y_evaporator_center;
+  const amrex::Real dz = x[2] - prob_parm.z_evaporator_center;
+  const amrex::Real port_radius_sq =
+    prob_parm.r_fuel_line_inner * prob_parm.r_fuel_line_inner;
+
+  return dy * dy + dz * dz <= port_radius_sq;
+}
+
+AMREX_GPU_HOST_DEVICE
+AMREX_FORCE_INLINE
+bool
+pc_is_fuel_inlet_port(
+  const amrex::Real x[AMREX_SPACEDIM],
+  const ProbParmDevice& prob_parm)
+{
+  return pc_is_fuel_line_cross_section(x, prob_parm);
+}
+
+AMREX_GPU_HOST_DEVICE
+AMREX_FORCE_INLINE
+bool
+pc_is_inside_fuel_line(
+  const amrex::Real x[AMREX_SPACEDIM],
+  const ProbParmDevice& prob_parm)
+{
+  return x[0] >= prob_parm.x_fuel_line_lo &&
+         x[0] <= prob_parm.L &&
+         pc_is_fuel_line_cross_section(x, prob_parm);
 }
 
 AMREX_GPU_HOST_DEVICE
@@ -76,6 +115,56 @@ pc_air_massfrac(
 #endif
 }
 
+AMREX_GPU_HOST_DEVICE
+AMREX_FORCE_INLINE
+void
+pc_fuel_massfrac(
+  amrex::Real massfrac[NUM_SPECIES],
+  const ProbParmDevice& prob_parm)
+{
+  for (int n = 0; n < NUM_SPECIES; n++) {
+    massfrac[n] = 0.0;
+  }
+
+  const int fuel_species_id =
+    pc_fuel_species_id(prob_parm);
+
+  const amrex::Real fuel_mass_fraction =
+    (prob_parm.mass_frac_fuel < 0.0) ?
+      0.0 :
+      ((prob_parm.mass_frac_fuel > 1.0) ?
+         1.0 :
+         prob_parm.mass_frac_fuel);
+
+  massfrac[fuel_species_id] = fuel_mass_fraction;
+
+#if NUM_SPECIES != 1
+  if (fuel_mass_fraction < 1.0) {
+    amrex::Real air_massfrac[NUM_SPECIES];
+    pc_air_massfrac(air_massfrac, prob_parm);
+
+    amrex::Real nonfuel_mass_fraction = 0.0;
+
+    for (int n = 0; n < NUM_SPECIES; n++) {
+      if (n != fuel_species_id) {
+        nonfuel_mass_fraction += air_massfrac[n];
+      }
+    }
+
+    if (nonfuel_mass_fraction > 0.0) {
+      for (int n = 0; n < NUM_SPECIES; n++) {
+        if (n != fuel_species_id) {
+          massfrac[n] =
+            air_massfrac[n] *
+            (1.0 - fuel_mass_fraction) / nonfuel_mass_fraction;
+        }
+      }
+    }
+  }
+#endif
+}
+
+
 class EBAnnularSector
   : public pele::pelec::Geometry::Register<EBAnnularSector>
 {
@@ -99,19 +188,42 @@ pc_initdata(
   int j,
   int k,
   amrex::Array4<amrex::Real> const& state,
-  amrex::GeometryData const& /*geomdata*/,
+  amrex::GeometryData const& geomdata,
   ProbParmDevice const& prob_parm)
 {
-  const amrex::Real u = 0.0;
+  const amrex::Real* prob_lo =
+    geomdata.ProbLo();
+  const amrex::Real* dx =
+    geomdata.CellSize();
+
+  const amrex::Real x[AMREX_SPACEDIM] = {
+    AMREX_D_DECL(
+      prob_lo[0] + (static_cast<amrex::Real>(i) + 0.5) * dx[0],
+      prob_lo[1] + (static_cast<amrex::Real>(j) + 0.5) * dx[1],
+      prob_lo[2] + (static_cast<amrex::Real>(k) + 0.5) * dx[2])};
+
+  const bool is_fuel_line =
+    pc_is_inside_fuel_line(x, prob_parm);
+
+  amrex::Real u = 0.0;
   const amrex::Real v = 0.0;
   const amrex::Real w = 0.0;
-  const amrex::Real p = prob_parm.p0;
-  const amrex::Real T = prob_parm.T0;
+  const amrex::Real p =
+    is_fuel_line ? prob_parm.p_fuel_inlet : prob_parm.p0;
+  const amrex::Real T =
+    is_fuel_line ? prob_parm.T_fuel_inlet : prob_parm.T0;
 
   amrex::Real massfrac[NUM_SPECIES];
-  pc_air_massfrac(
-    massfrac,
-    prob_parm);
+
+  if (is_fuel_line) {
+    pc_fuel_massfrac(
+      massfrac,
+      prob_parm);
+  } else {
+    pc_air_massfrac(
+      massfrac,
+      prob_parm);
+  }
 
   amrex::Real rho;
   amrex::Real eint;
@@ -125,6 +237,18 @@ pc_initdata(
     T,
     rho,
     eint);
+
+  if (is_fuel_line) {
+    amrex::Real Cs_in;
+
+    eos.RTY2Cs(
+      rho,
+      T,
+      massfrac,
+      Cs_in);
+
+    u = -prob_parm.M_fuel_inlet * Cs_in;
+  }
 
   state(i, j, k, URHO) = rho;
   state(i, j, k, UMX) = rho * u;
@@ -167,7 +291,7 @@ bcnormal(
   // x-low inlet
   // ---------------------------------------------------------------------------
 
-  if ((idir == 0) && (sgn == 1)) {
+  if ((idir == 0) && (sgn == -1)) {
 
     auto eos =
       pele::physics::PhysicsType::eos();
@@ -272,7 +396,7 @@ bcnormal(
   // x-high outlet
   // ---------------------------------------------------------------------------
 
-  } else if ((idir == 0) && (sgn == -1)) {
+  } else if ((idir == 0) && (sgn == 1)) {
 
     amrex::Real rho =
       s_int[URHO];
@@ -299,42 +423,22 @@ bcnormal(
         s_int[UFS + n] / rho;
     }
 
-    const amrex::Real r =
-      std::sqrt(x[1] * x[1] + x[2] * x[2]);
-
     const bool is_secondary_fuel_inlet =
-      r > prob_parm.secondary_inlet_split_r;
+      pc_is_fuel_inlet_port(x, prob_parm);
 
     if (is_secondary_fuel_inlet) {
 
-      const int fuel_species_id =
-        pc_fuel_species_id(prob_parm);
-
-      const amrex::Real fuel_mass_fraction =
-        (prob_parm.mass_frac_fuel < 0.0) ?
-          0.0 :
-          ((prob_parm.mass_frac_fuel > 1.0) ?
-             1.0 :
-             prob_parm.mass_frac_fuel);
-
-      amrex::Real nonfuel_mass_fraction = 0.0;
-
-      for (int n = 0; n < NUM_SPECIES; n++) {
-        if (n != fuel_species_id) {
-          nonfuel_mass_fraction += massfrac[n];
-        }
+      if (prob_parm.debug_fuel_port) {
+        printf(
+          "Fuel port BC reached at x=(%.16g, %.16g, %.16g)\n",
+          static_cast<double>(x[0]),
+          static_cast<double>(x[1]),
+          static_cast<double>(x[2]));
       }
 
-      for (int n = 0; n < NUM_SPECIES; n++) {
-        if (n == fuel_species_id) {
-          massfrac[n] = fuel_mass_fraction;
-        } else if (nonfuel_mass_fraction > 0.0) {
-          massfrac[n] *=
-            (1.0 - fuel_mass_fraction) / nonfuel_mass_fraction;
-        } else {
-          massfrac[n] = 0.0;
-        }
-      }
+      pc_fuel_massfrac(
+        massfrac,
+        prob_parm);
 
       auto eos =
         pele::physics::PhysicsType::eos();
