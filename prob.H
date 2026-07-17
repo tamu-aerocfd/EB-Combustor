@@ -26,6 +26,7 @@
 #include "Geometry.H"
 
 #include <cmath>
+#include <cstdio>
 #include <string>
 
 void parse_params(ProbParmDevice* prob_parm_device);
@@ -41,6 +42,28 @@ pc_fuel_species_id(const ProbParmDevice& prob_parm)
 #else
   return (prob_parm.fuel_species_id >= 0) ? prob_parm.fuel_species_id : H2_ID;
 #endif
+}
+
+
+AMREX_GPU_HOST_DEVICE
+AMREX_FORCE_INLINE
+bool
+pc_is_fuel_inlet_port(
+  const amrex::Real x[AMREX_SPACEDIM],
+  amrex::GeometryData const& geomdata,
+  const ProbParmDevice& prob_parm)
+{
+  const amrex::Real* dx =
+    geomdata.CellSize();
+
+  const amrex::Real dy = x[1] - prob_parm.y_evaporator_center;
+  const amrex::Real dz = x[2] - prob_parm.z_evaporator_center;
+  const amrex::Real radius_tolerance =
+    0.5 * std::sqrt(dx[1] * dx[1] + dx[2] * dx[2]);
+  const amrex::Real port_radius =
+    prob_parm.r_fuel_line_inner + radius_tolerance;
+
+  return dy * dy + dz * dz <= port_radius * port_radius;
 }
 
 AMREX_GPU_HOST_DEVICE
@@ -155,7 +178,7 @@ bcnormal(
   const amrex::Real s_int[NVAR],
   amrex::Real s_ext[NVAR],
   const int idir,
-  const int sgn,
+  const int /*sgn*/,
   const amrex::Real /*time*/,
   amrex::GeometryData const& geomdata,
   ProbParmDevice const& prob_parm,
@@ -163,11 +186,23 @@ bcnormal(
     amrex::Real,
     AMREX_SPACEDIM>& turb_fluc)
 {
+  const amrex::Real* prob_lo =
+    geomdata.ProbLo();
+  const amrex::Real* prob_hi =
+    geomdata.ProbHi();
+  const amrex::Real x_mid =
+    0.5 * (prob_lo[0] + prob_hi[0]);
+
+  const bool is_xlo_boundary =
+    (idir == 0) && (x[0] < x_mid);
+  const bool is_xhi_boundary =
+    (idir == 0) && (x[0] >= x_mid);
+
   // ---------------------------------------------------------------------------
   // x-low inlet
   // ---------------------------------------------------------------------------
 
-  if ((idir == 0) && (sgn == 1)) {
+  if (is_xlo_boundary) {
 
     auto eos =
       pele::physics::PhysicsType::eos();
@@ -272,7 +307,7 @@ bcnormal(
   // x-high outlet
   // ---------------------------------------------------------------------------
 
-  } else if ((idir == 0) && (sgn == -1)) {
+  } else if (is_xhi_boundary) {
 
     amrex::Real rho =
       s_int[URHO];
@@ -299,13 +334,22 @@ bcnormal(
         s_int[UFS + n] / rho;
     }
 
-    const amrex::Real r =
-      std::sqrt(x[1] * x[1] + x[2] * x[2]);
-
     const bool is_secondary_fuel_inlet =
-      r > prob_parm.secondary_inlet_split_r;
+      pc_is_fuel_inlet_port(x, geomdata, prob_parm);
 
     if (is_secondary_fuel_inlet) {
+
+      if (prob_parm.debug_fuel_port) {
+        printf(
+          "Fuel port BC reached at x=(%.16g, %.16g, %.16g), "
+          "center=(%.16g, %.16g), inner_radius=%.16g\n",
+          static_cast<double>(x[0]),
+          static_cast<double>(x[1]),
+          static_cast<double>(x[2]),
+          static_cast<double>(prob_parm.y_evaporator_center),
+          static_cast<double>(prob_parm.z_evaporator_center),
+          static_cast<double>(prob_parm.r_fuel_line_inner));
+      }
 
       const int fuel_species_id =
         pc_fuel_species_id(prob_parm);
