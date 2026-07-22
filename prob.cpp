@@ -39,6 +39,12 @@ validate_geometry(const ProbParmDevice& pp)
     pp.mass_frac_fuel >= 0.0 && pp.mass_frac_fuel <= 1.0,
     "Require 0 <= prob.mass_frac_fuel <= 1");
   require(
+    pp.fuel_inlet_type == 0 || pp.fuel_inlet_type == 1,
+    "prob.fuel_inlet_type must be 0 (Mach) or 1 (mass flow rate)");
+  require(
+    pp.fuel_inlet_type == 0 || pp.mdot_fuel_inlet > 0.0,
+    "Require prob.mdot_fuel_inlet > 0 when prob.fuel_inlet_type = 1");
+  require(
     pp.air_mole_frac_o2 >= 0.0 && pp.air_mole_frac_n2 >= 0.0 &&
       pp.air_mole_frac_o2 + pp.air_mole_frac_n2 > 0.0,
     "Air O2/N2 mole fractions must be nonnegative with positive sum");
@@ -180,6 +186,8 @@ parse_params(ProbParmDevice* prob_parm_device)
   pp.query("p_inlet", prob_parm_device->p_inlet);
   pp.query("p_exit", prob_parm_device->p_exit);
   pp.query("M_fuel_inlet", prob_parm_device->M_fuel_inlet);
+  pp.query("fuel_inlet_type", prob_parm_device->fuel_inlet_type);
+  pp.query("mdot_fuel_inlet", prob_parm_device->mdot_fuel_inlet);
   pp.query("T_fuel_inlet", prob_parm_device->T_fuel_inlet);
   pp.query("p_fuel_inlet", prob_parm_device->p_fuel_inlet);
   pp.query("fuel_species_id", prob_parm_device->fuel_species_id);
