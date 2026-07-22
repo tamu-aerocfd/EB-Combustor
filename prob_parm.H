@@ -23,6 +23,11 @@ struct ProbParmDevice
   amrex::Real p_exit = 1.013e6;
 
   amrex::Real M_fuel_inlet = 0.1;
+  // Fuel inlet type:
+  //   0 = prescribed Mach number using M_fuel_inlet and p_fuel_inlet.
+  //   1 = pressure-matched design mass flow rate using mdot_fuel_inlet.
+  int fuel_inlet_type = 0;
+  amrex::Real mdot_fuel_inlet = 0.0;
   amrex::Real T_fuel_inlet = 300.0;
   amrex::Real p_fuel_inlet = 1.013e6;
   // Set fuel_species_id < 0 to use the mechanism default: species 0 for

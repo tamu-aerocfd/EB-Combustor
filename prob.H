@@ -334,6 +334,17 @@ bcnormal(
         s_int[UFS + n] / rho;
     }
 
+    auto eos =
+      pele::physics::PhysicsType::eos();
+
+    amrex::Real p_inter = 0.0;
+
+    eos.RTY2P(
+      rho,
+      T,
+      massfrac,
+      p_inter);
+
     const bool is_secondary_fuel_inlet =
       pc_is_fuel_inlet_port(x, geomdata, prob_parm);
 
@@ -380,11 +391,13 @@ bcnormal(
         }
       }
 
-      auto eos =
-        pele::physics::PhysicsType::eos();
-
-      const amrex::Real p_in =
+      amrex::Real p_in =
         prob_parm.p_fuel_inlet;
+
+      if (prob_parm.fuel_inlet_type == 1) {
+        p_in =
+          p_inter;
+      }
 
       const amrex::Real T_in =
         prob_parm.T_fuel_inlet;
@@ -404,8 +417,28 @@ bcnormal(
         massfrac,
         Cs_in);
 
-      u =
-        -prob_parm.M_fuel_inlet * Cs_in;
+      if (prob_parm.fuel_inlet_type == 0) {
+        u =
+          -prob_parm.M_fuel_inlet * Cs_in;
+      } else if (prob_parm.fuel_inlet_type == 1) {
+        const amrex::Real pi =
+          4.0 * std::atan(1.0);
+        const amrex::Real fuel_port_area =
+          pi *
+          prob_parm.r_fuel_line_inner *
+          prob_parm.r_fuel_line_inner;
+        const amrex::Real design_inflow_speed =
+          prob_parm.mdot_fuel_inlet / (rho * fuel_port_area);
+        const amrex::Real backflow_guard_speed =
+          (u > 0.0) ? u : 0.0;
+        u =
+          -((design_inflow_speed > backflow_guard_speed) ?
+              design_inflow_speed :
+              backflow_guard_speed);
+      } else {
+        amrex::Abort(
+          "Invalid fuel inlet boundary type specified");
+      }
 
       v = 0.0;
       w = 0.0;
@@ -440,17 +473,7 @@ bcnormal(
       const amrex::Real T_inter =
         T;
 
-      amrex::Real p_inter = 0.0;
       amrex::Real cs_inter = 0.0;
-
-      auto eos =
-        pele::physics::PhysicsType::eos();
-
-      eos.RTY2P(
-        rho_inter,
-        T_inter,
-        massfrac,
-        p_inter);
 
       eos.RTY2Cs(
         rho_inter,
