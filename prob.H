@@ -417,17 +417,13 @@ bcnormal(
 
     } else if (prob_parm.outlet_type == 1) {
 
-      const amrex::Real* prob_hi =
-        geomdata.ProbHi();
 
-      const amrex::Real* dx =
-        geomdata.CellSize();
-
-      const amrex::Real xd =
-        prob_hi[0] - 0.5 * dx[0];
-
-      const amrex::Real xb =
-        prob_hi[0];
+      // One characteristic pressure-outlet state for every ghost cell.
+      //
+      // There is no x-dependent linear extrapolation and no switch to a
+      // second thermodynamic state during backflow. The characteristic state
+      // is constructed once, and its normal velocity is limited so that the
+      // outlet cannot admit flow into the domain.
 
       const amrex::Real rho_inter =
         rho;
@@ -465,64 +461,44 @@ bcnormal(
       const amrex::Real pb =
         prob_parm.p_exit;
 
-      const amrex::Real rhob =
-        rho_inter +
-        (pb - p_inter) /
-        (cs_inter * cs_inter);
-
       const amrex::Real ub =
         u_inter +
         (p_inter - pb) /
         (rho_inter * cs_inter);
 
-      const amrex::Real vb =
-        v_inter;
-
-      const amrex::Real wb =
-        w_inter;
-
-      rho =
-        (rhob - rho_inter) /
-        (xb - xd) *
-        (x[0] - xd) +
-        rho_inter;
-
-      const amrex::Real p =
-        (pb - p_inter) /
-        (xb - xd) *
-        (x[0] - xd) +
-        p_inter;
-
-      eos.RYP2E(
-        rho,
+      // Construct one EOS-consistent pressure-outlet state at p_exit while
+      // retaining the interior temperature and composition.
+      //
+      // This same state is used for every outlet ghost cell, so there is no
+      // linear extrapolation with ghost-cell depth.
+      eos.PYT2RE(
+        pb,
         massfrac,
-        p,
+        T_inter,
+        rho,
         eint);
 
-      eos.REY2T(
-        rho,
-        eint,
-        massfrac,
-        T);
+      // At the x-high boundary, positive u is outward.
+      //
+      // If the adjacent interior state points inward, require the exterior
+      // velocity to be at least -u_inter. For an approximately symmetric
+      // Riemann state, this gives a zero face-normal velocity.
+      //
+      // Otherwise, require the exterior velocity to be nonnegative.
+      const amrex::Real u_min_no_backflow =
+        (u_inter < 0.0) ?
+          -u_inter :
+          0.0;
 
       u =
-        (ub - u_inter) /
-        (xb - xd) *
-        (x[0] - xd) +
-        u_inter;
+        (ub > u_min_no_backflow) ?
+          ub :
+          u_min_no_backflow;
 
-      v =
-        (vb - v_inter) /
-        (xb - xd) *
-        (x[0] - xd) +
-        v_inter;
-
-      w =
-        (wb - w_inter) /
-        (xb - xd) *
-        (x[0] - xd) +
-        w_inter;
-
+      v = v_inter;
+      w = w_inter;
+      T = T_inter;
+      
     } else if (prob_parm.outlet_type == 2) {
 
       const amrex::Real p =

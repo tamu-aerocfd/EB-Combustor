@@ -3,3 +3,8 @@ orun*
 *~
 *.ex
 tmp*
+*plt*
+*err
+chk*
+*log*
+Back*

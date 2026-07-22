@@ -618,7 +618,7 @@ EBAnnularSector::build(
 
   auto fuel_line_bore = make_capped_cylinder(
     pp->x_fuel_line_lo,
-    L,
+    L+1,
     pp->r_fuel_line_inner,
     pp->y_evaporator_center,
     pp->z_evaporator_center);
