@@ -28,7 +28,7 @@ PELE_CVODE_FORCE_YCORDER = FALSE
 PELE_USE_MAGMA = FALSE
 PELE_COMPILE_AJACOBIAN = FALSE
 # Eos_dir := Soave-Redlich-Kwong
-Eos_Model := GammaLaw
+Eos_Model := Fuego
 Chemistry_Model := LiDryer
 Transport_Model := Constant
 
